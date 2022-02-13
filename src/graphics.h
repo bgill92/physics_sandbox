@@ -3,7 +3,11 @@
 
 #include <iostream>
 #include <SDL.h>
+#include <memory>
+#include <vector>
+
 #include "ini.h"
+#include "physics.h"
 
 class Graphics {
 	public:
@@ -19,6 +23,10 @@ class Graphics {
 		auto getWindowHeight() {return _windowHeight;};
 
 		auto getRenderer(){return sdl_renderer;};
+
+		void Draw(std::vector<std::unique_ptr<Object>> *objects);
+
+		void DrawObject(const std::unique_ptr<Object> &obj);
 
 	private:
 

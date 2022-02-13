@@ -1,7 +1,10 @@
 #include "manager.h"
 
+#include <iostream>
+
 Manager::Manager() {
 	_graphics = std::make_unique<Graphics>();
+	_world    = std::make_unique<World>();
 }
 
 void Manager::initialize() {
@@ -10,16 +13,12 @@ void Manager::initialize() {
 
 void Manager::Run(){
 
-	// Try to get something on the screen
-	SDL_Rect rect;
-
 	int x_init = kScreenWidth/2;
-	int y_init = kScreenHeight/2;
+	int y_init = kScreenHeight;
 
-	rect.x = x_init;
-	rect.y = y_init;
-	rect.w = 32;
-	rect.h = 32;
+	_world->putBlock(x_init,y_init,4,4,2);	
+
+	_world->putBlock(x_init/2,y_init,4,4,1);	
 
 	bool quit = false;
 
@@ -35,29 +34,12 @@ void Manager::Run(){
 
 		}
 
-		Uint64 begTime = SDL_GetTicks64();
+		Uint64 begTime = SDL_GetTicks();
 
+		_graphics->Draw(_world->getObjectsPtr());
+	    _world->Step();
 
-		// TODO: Do the physics and stuff	
-
-	    // Clear screen
-	    SDL_SetRenderDrawColor(this->_graphics->getRenderer(), 0x1E, 0x1E, 0x1E, 0xFF);
-	    SDL_RenderClear(this->_graphics->getRenderer());
-
-	    // Rectangle color
-	    SDL_SetRenderDrawColor(this->_graphics->getRenderer(), 0xFF, 0xFF, 0xFF, 0xFF);
-	    SDL_RenderFillRect(this->_graphics->getRenderer(),&rect);
-
-	    // Render screen
-	    SDL_RenderPresent(this->_graphics->getRenderer());
-
-	    rect.y++;
-
-	    if (rect.y+(rect.h) > kScreenHeight){
-	    	rect.y = 0;
-	    }
-
-		Uint64 endTime = SDL_GetTicks64();
+		Uint64 endTime = SDL_GetTicks();
 
 		if ((endTime-begTime) < kMsPerFrame) {
 			SDL_Delay(kMsPerFrame - (endTime-begTime));

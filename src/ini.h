@@ -12,6 +12,6 @@ constexpr std::size_t kTargetFramerate{60};
 // Target time per frame
 constexpr std::size_t kMsPerFrame{1000 / kTargetFramerate};
 // Physics Frequency
-constexpr std::size_t kPhysicsFreq{100}
+constexpr std::size_t kPhysicsFreq{kTargetFramerate};
 
 #endif
