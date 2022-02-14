@@ -1,5 +1,4 @@
 #include "manager.h"
-
 #include <iostream>
 
 Manager::Manager() {
@@ -13,24 +12,38 @@ void Manager::initialize() {
 
 void Manager::Run(){
 
-	int x_init = kScreenWidth/2;
-	int y_init = kScreenHeight;
-
-	_world->putBlock(x_init,y_init,4,4,2);	
-
-	_world->putBlock(x_init/2,y_init,4,4,1);	
-
 	bool quit = false;
 
 	SDL_Event e;
 
+	bool lastStatePressed = false;
+	bool inSameEvent = false;
+
+	int windowHeight;
+
 	while (!quit) {		
+
+		SDL_GetRendererOutputSize(_graphics->getRenderer(), NULL, &windowHeight);
 
 		while (SDL_PollEvent(&e) != 0 ) {
 
 			if (e.type == SDL_QUIT) {
 				quit = true;
+			} else if ((e.type == SDL_MOUSEBUTTONDOWN) & (!lastStatePressed)) {
+				lastStatePressed = true;
+				int x,y;
+
+				SDL_GetMouseState(&x, &y);
+
+				_world->putBlock(x,windowHeight - y,4,4,1);	
+
+				inSameEvent = true;
+
+			} else {
+				lastStatePressed = false;
 			}
+
+
 
 		}
 
@@ -44,7 +57,7 @@ void Manager::Run(){
 		if ((endTime-begTime) < kMsPerFrame) {
 			SDL_Delay(kMsPerFrame - (endTime-begTime));
 		}
-	
+
 
 	}
 
