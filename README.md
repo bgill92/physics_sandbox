@@ -22,23 +22,24 @@ Build a new development image
 ```
 source .env
 mkdir -p ~/.${REPO}/ccache
-export UIDGID=$(id -u):$(id -g); docker compose -f compose.dev.yml build
+export UIDGID=$(id -u):$(id -g); docker compose -f compose.yaml build
 ```
 Start an interactive development container
 ```
-docker compose -f compose.dev.yml run development
+docker compose -f compose.yaml run development
 ```
 Build the repository in the container
 ```
-username@development-container-dev:~/ws$ colcon build
+mkdir -p build
+cd build
+cmake ..
+make
 ```
 
 ## Test
 To test that your container is working with graphics
 ```shell
-username@development-container-dev:~/ws$ colcon build
-username@development-container-dev:~/ws$ source install/setup.bash
-username@development-container-dev:~/ws$ ros2 launch platform_description display.launch.py
+username@physics-sandbox-dev:~/physics_sandbox/build$ ./PhysicsSandbox
 ```
 
 #### Dependencies

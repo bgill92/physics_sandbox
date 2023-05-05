@@ -10,15 +10,15 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -q -y --no-install-recommends \
         apt-utils \
+        build-essential \
         ccache \
         clang \
         clang-format \
         clang-tidy \
         cmake \
         git \
-        lld \
-        llvm \
         python3-pip \
+        libsdl2-dev \
         vim \
         wget \
         ssh-client \
