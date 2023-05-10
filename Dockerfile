@@ -17,8 +17,9 @@ RUN apt-get update \
         clang-tidy \
         cmake \
         git \
-        python3-pip \
         libsdl2-dev \
+        libeigen3-dev \
+        python3-pip \
         vim \
         wget \
         ssh-client \

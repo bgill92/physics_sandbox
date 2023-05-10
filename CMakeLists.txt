@@ -1,21 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
+project(physics_sandbox)
+set(CMAKE_CXX_STANDARD 20)
 
-add_definitions(-std=c++17)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS} -pthread")
-set(CMAKE_BUILD_TYPE Debug)
-
-# Set project name
-project(PhysicsSandbox)
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
+find_package(Eigen3 REQUIRED)
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS} src)
 
 # Add the executable
-add_executable(PhysicsSandbox src/main.cpp src/graphics.cpp src/manager.cpp src/physics.cpp)
+add_executable(physics_sandbox src/main.cpp src/graphics.cpp src/manager.cpp src/physics.cpp)
 
-target_link_libraries(PhysicsSandbox ${SDL2_LIBRARIES})
-target_link_libraries(PhysicsSandbox pthread)
+target_link_libraries(physics_sandbox ${SDL2_LIBRARIES} pthread Eigen3::Eigen)
