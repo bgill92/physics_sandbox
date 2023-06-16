@@ -2,9 +2,6 @@
 
 This repo is intended to be a physics sandbox engine.
 
-
-
-
 # Dockerfile Information
 
 The Dockerfile setup and instructions were adapted from here: https://github.com/PickNikRobotics/ros_testing_templates
@@ -22,7 +19,7 @@ Build a new development image
 ```
 source .env
 mkdir -p ~/.${REPO}/ccache
-export UIDGID=$(id -u):$(id -g); docker compose -f compose.yaml build
+export USER_UID=$(id -u);export USER_GID=$(id -g);docker compose -f compose.yaml build
 ```
 Start an interactive development container
 ```

@@ -34,12 +34,14 @@ WORKDIR /${REPO}
 
 FROM upstream AS development
 
-ARG UIDGID
+ARG USER_UID
+ARG USER_GID
 ARG USER
 
 # fail build if args are missing
-RUN if [ -z "$UIDGID" ]; then echo '\nERROR: UIDGID not set. Run \n\n \texport UIDGID=$(id -u):$(id -g) \n\n on host before building Dockerfile.\n'; exit 1; fi
+RUN if [ -z "$USER_UID" ]; then echo '\nERROR: USER_UID not set. Run \n\n \texport USER_UID=$(id -u) \n\n on host before building Dockerfile.\n'; exit 1; fi
+RUN if [ -z "$USER_GID" ]; then echo '\nERROR: USER_GID not set. Run \n\n \texport USER_GID=$(id -g) \n\n on host before building Dockerfile.\n'; exit 1; fi
 RUN if [ -z "$USER" ]; then echo '\nERROR: USER not set. Run \n\n \texport USER=$(whoami) \n\n on host before building Dockerfile.\n'; exit 1; fi
 
 # chown working directory to user
-RUN mkdir -p /home/${USER}/${REPO} && chown -R ${UIDGID} /home/${USER}
+RUN mkdir -p /home/${USER}/${REPO} && chown -R ${USER_UID}:${USER_GID} /home/${USER}

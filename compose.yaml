@@ -4,7 +4,8 @@ services:
   development:
     build:
       args:
-        UIDGID: ${UIDGID}
+        USER_UID: ${USER_UID}
+        USER_GID: ${USER_GID}
         USER: ${USER}
         REPO: ${REPO}
       context: .
@@ -22,7 +23,7 @@ services:
     image: ${REPO}-dev:latest
     network_mode: host
     privileged: true
-    user: ${UIDGID}
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     volumes:
       - ~/.ssh:${HOME}/.ssh:ro
       - ~/.gitconfig:${HOME}/.gitconfig:ro
