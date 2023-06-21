@@ -1,78 +1,61 @@
-#include "physics.h"
+#include "physics.hpp"
 
 #include <iostream>
 #include <cmath>
 
-twoD operator+(const twoD &lhs, const twoD &rhs) {
-	return twoD{lhs.x + rhs.x, lhs.y + rhs.y};
+Particle::Particle(uint const id, Eigen::Vector3d const& position, Eigen::Vector3d const& velocity, std::array<uint, 3> const& color) {
+	id_ = id;
+	state_.position = position;
+	state_.linear_velocity = velocity;
+	color_ = color;
 }
 
-twoD operator*(const twoD &lhs, const float &num) {
-	return twoD{lhs.x*num,lhs.y*num};
+void World::spawn_particle(uint const id, Eigen::Vector3d const& position, Eigen::Vector3d const& velocity, std::array<uint, 3> const& color) {
+	particles_.emplace_back(id, position, velocity, color);
 }
 
-twoD operator*(const float &num, const twoD &rhs) {
-	return twoD{rhs.x*num,rhs.y*num};
-}
-
-twoD operator/(const twoD &lhs, const float &num) {
-	return twoD{lhs.x/num,lhs.y/num};
-}
-	
-std::ostream& operator<<(std::ostream& os, const twoD& vec){
-	os << "(" << vec.x << "," << vec.y << ")\n";
-	return os;
-}
-
-void World::Run() {
+void World::run() {
 
 	// Run Dynamics
 
 }
 
-
-void World::Step() {
+void World::step() {
 
 	// Step through the dynamics
-	twoD acc_world{0,-9.81}; // gravity is -9.81 m/s^2
-
 	// Iterate over forces, velocities, and speed over one time step
-	for (auto &obj:_objects) {
+	
+	std::vector<std::size_t> screenWidthAndHeightAndZ {kScreenWidth, kScreenHeight, 0};
+	for (auto& obj:particles_) {
+		// std::cout << count << "\n";
 
 		// Calculate force at current time step
-		obj->F = obj->F + acc_world*obj->_m;
+		// obj->F = obj->F + acc_world*obj->_m;
 
 		// Calculate velocity at current timestep
-		obj->vel = obj->vel + (obj->F/obj->_m)*dt;
-
-		if (std::abs(obj->vel.y) > std::abs(obj->_termSpeed)) {
-			obj->vel.y = obj->_termSpeed;
-		}		
+		// obj->vel = obj->vel + (obj->F/obj->_m)*dt;
 
 		// Calculate position at current timestep
-		obj->pos = obj->pos + (obj->vel*dt) + (0.5*(obj->F/obj->_m)*(dt*dt));	
+		// obj->pos = obj->pos + (obj->vel*dt) + (0.5*(obj->F/obj->_m)*(dt*dt));
 
-		obj->F = twoD{0,0};
-
-	}
-
-	// Check for collision and resolve;
-	for (auto &obj:_objects) {
-		obj->checkCollision();
-		if (obj->isColliding()) {
-			obj->resolveCollision();
+		// std::cout << "pre\n";		
+		// std::cout << obj.get_state().position << "\n";
+		// std::cout << "\n";
+		for (size_t idx = 0; idx < obj.get_state().position.size(); idx++)
+		{
+			if (obj.get_state().position[idx] + obj.get_state().linear_velocity[idx]*dt > screenWidthAndHeightAndZ[idx])
+			{
+				obj.get_state().linear_velocity[idx] *= -1;	
+			}
+			if (obj.get_state().position[idx] + obj.get_state().linear_velocity[idx]*dt < 0)
+			{
+				obj.get_state().linear_velocity[idx] *= -1;	
+			}
 		}
+
+		// Update position
+		obj.get_state().position = obj.get_state().position + obj.get_state().linear_velocity*dt;
+
 	}
 
-	// // Resolve collision
-	// for (auto &obj:_objects) {
-	// 	obj->checkCollision();
-	// }	
-
-}
-
-void World::putBlock(double x, double y, int width, int height, double m) {
-	// this->_objects.emplace_back(x,y,width,height, m);
-	// std::cout << x << ", " << y << ", " << width << ", " << height << ", " << m << "\n";
-	this->_objects.push_back(std::make_unique<Box>(x,y,width,height, m));
 }

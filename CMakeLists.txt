@@ -11,9 +11,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 find_package(Eigen3 REQUIRED)
 find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS} src)
+include_directories(${SDL2_INCLUDE_DIRS} include)
 
 # Add the executable
-add_executable(physics_sandbox src/main.cpp src/graphics.cpp src/manager.cpp src/physics.cpp)
+add_executable(physics_sandbox src/main.cpp src/manager.cpp src/graphics.cpp src/physics.cpp)
 
 target_link_libraries(physics_sandbox ${SDL2_LIBRARIES} pthread Eigen3::Eigen)

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <memory>
-#include "physics.h"
-#include "graphics.h"
-#include "manager.h"
+// #include "physics.hpp"
+#include "graphics.hpp"
+#include "manager.hpp"
 
 int main() {	
 
@@ -13,7 +13,7 @@ int main() {
 	man->initialize();
 
 	// Run the sandbox manager
-	man->Run();
+	man->run();
 
 	return 0;
 

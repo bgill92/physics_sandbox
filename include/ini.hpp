@@ -1,6 +1,4 @@
-#ifndef INI_H
-#define INI_H
-
+#pragma once
 // Initialization constants
 
 // Width of the window
@@ -13,5 +11,3 @@ constexpr std::size_t kTargetFramerate{60};
 constexpr std::size_t kMsPerFrame{1000 / kTargetFramerate};
 // Physics Frequency
 constexpr std::size_t kPhysicsFreq{kTargetFramerate};
-
-#endif
