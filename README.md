@@ -2,9 +2,6 @@
 
 This repo is intended to be a physics sandbox engine.
 
-
-
-
 # Dockerfile Information
 
 The Dockerfile setup and instructions were adapted from here: https://github.com/PickNikRobotics/ros_testing_templates

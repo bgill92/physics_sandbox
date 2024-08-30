@@ -1,78 +1,40 @@
-#include "physics.h"
+#include "physics.hpp"
+#include "object.hpp"
 
-#include <iostream>
-#include <cmath>
+namespace physics
+{
 
-twoD operator+(const twoD &lhs, const twoD &rhs) {
-	return twoD{lhs.x + rhs.x, lhs.y + rhs.y};
-}
+	void update(Object& object, const double timestep)
+	{
+	  // Update is Runge-Kutta 4
+	  // Essentially we calculate the derivative at four points, take a weighted average of the derivatives,
+	  // and find the next state using that weighted derivative average
+	  const auto evaluateDerivative = [&object](const stateVector& derivative, const double timestep)
+	  {
+	      stateVector state;
+	      // Calculate the next state given the derivative
+	      state.segment(0, 3) = object.getState().segment(0, 3) + derivative.segment(0, 3) * timestep;
+	      // [dx, dy, dz] = [ dx, dy, dz] + [ddx, ddy, ddz] * timestep
+	      state.segment(3, 3) = object.getState().segment(3, 3) + derivative.segment(3, 3) * timestep;
 
-twoD operator*(const twoD &lhs, const float &num) {
-	return twoD{lhs.x*num,lhs.y*num};
-}
+	      // Calculate the derivative at the next state
+	      stateVector new_derivative;
+	      new_derivative.segment(0, 3) = state.segment(3, 3);
+	      new_derivative.segment(3, 3) = object.getForces()/object.getMass();
 
-twoD operator*(const float &num, const twoD &rhs) {
-	return twoD{rhs.x*num,rhs.y*num};
-}
+	      return new_derivative;
+	  };
 
-twoD operator/(const twoD &lhs, const float &num) {
-	return twoD{lhs.x/num,lhs.y/num};
-}
-	
-std::ostream& operator<<(std::ostream& os, const twoD& vec){
-	os << "(" << vec.x << "," << vec.y << ")\n";
-	return os;
-}
+	  // k1 is the slope at the beginning of the time step
+	  // If we use the slope k1 to step halfway through the time step, then k2 is an estimate of the slope at the midpoint.
+	  // If we use the slope k2 to step halfway through the time step, then k3 is another estimate of the slope at the midpoint.
+	  // Finally, we use the slope, k3, to step all the way across the time step (to t₀+h), and k4 is an estimate of the slope at the endpoint.
+	  const auto k1 = evaluateDerivative(stateVector(), 0.0);
+	  const auto k2 = evaluateDerivative(k1, timestep/2);
+	  const auto k3 = evaluateDerivative(k2, timestep/2);
+	  const auto k4 = evaluateDerivative(k3, timestep);
 
-void World::Run() {
-
-	// Run Dynamics
-
-}
-
-
-void World::Step() {
-
-	// Step through the dynamics
-	twoD acc_world{0,-9.81}; // gravity is -9.81 m/s^2
-
-	// Iterate over forces, velocities, and speed over one time step
-	for (auto &obj:_objects) {
-
-		// Calculate force at current time step
-		obj->F = obj->F + acc_world*obj->_m;
-
-		// Calculate velocity at current timestep
-		obj->vel = obj->vel + (obj->F/obj->_m)*dt;
-
-		if (std::abs(obj->vel.y) > std::abs(obj->_termSpeed)) {
-			obj->vel.y = obj->_termSpeed;
-		}		
-
-		// Calculate position at current timestep
-		obj->pos = obj->pos + (obj->vel*dt) + (0.5*(obj->F/obj->_m)*(dt*dt));	
-
-		obj->F = twoD{0,0};
-
+	  object.addState((1.0/6.0) * timestep * (k1 + 2.0*k2 + 2.0*k3 + k4));
 	}
 
-	// Check for collision and resolve;
-	for (auto &obj:_objects) {
-		obj->checkCollision();
-		if (obj->isColliding()) {
-			obj->resolveCollision();
-		}
-	}
-
-	// // Resolve collision
-	// for (auto &obj:_objects) {
-	// 	obj->checkCollision();
-	// }	
-
-}
-
-void World::putBlock(double x, double y, int width, int height, double m) {
-	// this->_objects.emplace_back(x,y,width,height, m);
-	// std::cout << x << ", " << y << ", " << width << ", " << height << ", " << m << "\n";
-	this->_objects.push_back(std::make_unique<Box>(x,y,width,height, m));
 }
