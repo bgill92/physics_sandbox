@@ -17,11 +17,15 @@ public:
 
 	Eigen::Vector3d getForces() {return force_accumulator_;};	
 
-	const physics::stateVector getState() {return state_;} const;
+	const physics::stateVector getState() const {return state_;};
+
+	double getState(const size_t idx) const {return state_(idx);};
 
 	// Setters
 
 	void setState(const physics::stateVector& state) {state_ = state;};
+
+	void setState(const size_t idx, const double value) {state_(idx) = value;};
 
 	void addState(const physics::stateVector& state) {state_ += state;};
 
@@ -36,3 +40,5 @@ private:
   Eigen::Vector3d force_accumulator_ = {0, 0, 0};
 
 };
+
+void applyGravity(Object& object);

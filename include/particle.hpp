@@ -5,6 +5,8 @@
 
 class Particle : public Object
 {
+public:
+	
 	Particle() = delete;
 
 	Particle(const double radius, const double mass, const physics::stateVector& state) : Object{mass, state}, radius_{radius} {};

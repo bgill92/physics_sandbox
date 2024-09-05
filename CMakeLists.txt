@@ -22,8 +22,9 @@ find_package(SFML COMPONENTS graphics REQUIRED)
 #FetchContent_MakeAvailable(yaml-cpp)
 
 # Add the executable
-add_executable(physics_sandbox src/main.cpp)
+add_executable(physics_sandbox src/main.cpp src/object.cpp src/physics.cpp)
 
+target_include_directories(physics_sandbox PRIVATE include)
 target_link_libraries(physics_sandbox sfml-graphics pthread Eigen3::Eigen)
 
 #target_link_libraries(physics_sandbox sfml-graphics pthread Eigen3::Eigen yaml-cpp::yaml-cpp)
