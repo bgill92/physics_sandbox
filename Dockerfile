@@ -16,8 +16,9 @@ RUN apt-get update \
         clang-format \
         clang-tidy \
         cmake \
+        gdb \
         git \
-        libsdl2-dev \
+        libsfml-dev \
         libeigen3-dev \
         python3-pip \
         vim \
@@ -34,12 +35,45 @@ WORKDIR /${REPO}
 
 FROM upstream AS development
 
-ARG UIDGID
+ARG UID
+ARG GID
 ARG USER
 
 # fail build if args are missing
-RUN if [ -z "$UIDGID" ]; then echo '\nERROR: UIDGID not set. Run \n\n \texport UIDGID=$(id -u):$(id -g) \n\n on host before building Dockerfile.\n'; exit 1; fi
+# hadolint ignore=SC2028
+RUN if [ -z "$UID" ]; then echo '\nERROR: UID not set. Run \n\n \texport UID=$(id -u) \n\n on host before building Dockerfile.\n'; exit 1; fi
+# hadolint ignore=SC2028
+RUN if [ -z "$GID" ]; then echo '\nERROR: GID not set. Run \n\n \texport GID=$(id -g) \n\n on host before building Dockerfile.\n'; exit 1; fi
+# hadolint ignore=SC2028
 RUN if [ -z "$USER" ]; then echo '\nERROR: USER not set. Run \n\n \texport USER=$(whoami) \n\n on host before building Dockerfile.\n'; exit 1; fi
 
-# chown working directory to user
-RUN mkdir -p /home/${USER}/${REPO} && chown -R ${UIDGID} /home/${USER}
+# install developer tools
+RUN --mount=type=cache,target=/var/cache/apt,id=apt \
+    apt-get update && apt-get upgrade -y \
+    && apt-get install -q -y --no-install-recommends \
+        clang-format \
+        clang-tidy \
+        git \
+        openssh-client \
+        vim \
+        wget \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install --no-cache-dir \
+    pre-commit==3.0.4
+
+# Setup user home directory
+# --no-log-init helps with excessively long UIDs
+RUN groupadd --gid $GID $USER \
+    && useradd --no-log-init --uid $GID --gid $UID -m $USER --groups sudo \
+    && echo $USER ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USER \
+    && chmod 0440 /etc/sudoers.d/$USER \    
+    && touch /home/${USER}/.bashrc \
+    && chown -R ${GID}:${UID} /home/${USER}
+
+USER $USER
+ENV SHELL /bin/bash
+ENTRYPOINT []
+
+# Setup mixin
+WORKDIR /home/${USER}/ws

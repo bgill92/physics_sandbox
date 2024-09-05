@@ -1,78 +1,64 @@
-#include "physics.h"
+#include "physics.hpp"
+#include "object.hpp"
 
 #include <iostream>
-#include <cmath>
 
-twoD operator+(const twoD &lhs, const twoD &rhs) {
-	return twoD{lhs.x + rhs.x, lhs.y + rhs.y};
-}
+namespace physics
+{
+	stateVector update(const AMatrix& A, const BMatrix& B, const stateVector& state, const commandVector& command, const double timestep)
+	{
+	  // Update is Runge-Kutta 4
+	  // Essentially we calculate the derivative at four points, take a weighted average of the derivatives,
+	  // and find the next state using that weighted derivative average
+	  const auto evaluateDerivative = [&timestep](const AMatrix& A, const BMatrix& B, const stateVector& state, const stateVector& derivative, const commandVector& command)
+	  {
+	  	// Calculate the next state given the derivative, and then calculate the derivative at the next state
+	  	return A*(state + derivative*timestep) + B*command;
+	  };
 
-twoD operator*(const twoD &lhs, const float &num) {
-	return twoD{lhs.x*num,lhs.y*num};
-}
+	  // k1 is the slope at the beginning of the time step
+	  // If we use the slope k1 to step halfway through the time step, then k2 is an estimate of the slope at the midpoint.
+	  // If we use the slope k2 to step halfway through the time step, then k3 is another estimate of the slope at the midpoint.
+	  // Finally, we use the slope, k3, to step all the way across the time step (to t₀+h), and k4 is an estimate of the slope at the endpoint.
+	  const auto k1 = evaluateDerivative(A, B, state, stateVector(), command);
+	  const auto k2 = evaluateDerivative(A, B, state, k1*timestep*0.5, command);
+	  const auto k3 = evaluateDerivative(A, B, state, k2*timestep*0.5, command);
+	  const auto k4 = evaluateDerivative(A, B, state, k3*timestep, command);
 
-twoD operator*(const float &num, const twoD &rhs) {
-	return twoD{rhs.x*num,rhs.y*num};
-}
+	  return (1.0/6.0) * timestep * (k1 + 2.0*k2 + 2.0*k3 + k4);
+	}
 
-twoD operator/(const twoD &lhs, const float &num) {
-	return twoD{lhs.x/num,lhs.y/num};
-}
-	
-std::ostream& operator<<(std::ostream& os, const twoD& vec){
-	os << "(" << vec.x << "," << vec.y << ")\n";
-	return os;
-}
+	std::pair<AMatrix, BMatrix> generateAandBMatrices(const double timestep)
+	{
+		// A and B matrices for simple linear Newtonian motion
+		// The A matrix in this case just gets the velocities of the state
+	  AMatrix A {
+	  						 {0.0, 0.0, 0.0, 1.0, 0.0, 0.0},
+								 {0.0, 0.0, 0.0, 0.0, 1.0, 0.0},
+								 {0.0, 0.0, 0.0, 0.0, 0.0, 1.0},
+								 {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+								 {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+								 {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+								};
 
-void World::Run() {
+		// The B matrix gets the acceleration due to the forces
+		BMatrix B {
+								 {			0.0, 			0.0, 			0.0},
+								 {			0.0, 			0.0, 			0.0},
+								 {			0.0, 			0.0, 			0.0},
+								 {timestep,      0.0, 			0.0},
+								 {     0.0, timestep, 			0.0},
+								 {     0.0, 			0.0, timestep}
+								};
 
-	// Run Dynamics
-
-}
-
-
-void World::Step() {
-
-	// Step through the dynamics
-	twoD acc_world{0,-9.81}; // gravity is -9.81 m/s^2
-
-	// Iterate over forces, velocities, and speed over one time step
-	for (auto &obj:_objects) {
-
-		// Calculate force at current time step
-		obj->F = obj->F + acc_world*obj->_m;
-
-		// Calculate velocity at current timestep
-		obj->vel = obj->vel + (obj->F/obj->_m)*dt;
-
-		if (std::abs(obj->vel.y) > std::abs(obj->_termSpeed)) {
-			obj->vel.y = obj->_termSpeed;
-		}		
-
-		// Calculate position at current timestep
-		obj->pos = obj->pos + (obj->vel*dt) + (0.5*(obj->F/obj->_m)*(dt*dt));	
-
-		obj->F = twoD{0,0};
+		return {A, B};
 
 	}
 
-	// Check for collision and resolve;
-	for (auto &obj:_objects) {
-		obj->checkCollision();
-		if (obj->isColliding()) {
-			obj->resolveCollision();
-		}
+	void updateObject(Object& object, const double timestep)
+	{
+		const auto AandB = generateAandBMatrices(timestep);
+
+		object.addState(update(AandB.first, AandB.second, object.getState(), object.getForces()/object.getMass(), timestep));
 	}
-
-	// // Resolve collision
-	// for (auto &obj:_objects) {
-	// 	obj->checkCollision();
-	// }	
-
-}
-
-void World::putBlock(double x, double y, int width, int height, double m) {
-	// this->_objects.emplace_back(x,y,width,height, m);
-	// std::cout << x << ", " << y << ", " << width << ", " << height << ", " << m << "\n";
-	this->_objects.push_back(std::make_unique<Box>(x,y,width,height, m));
 }
