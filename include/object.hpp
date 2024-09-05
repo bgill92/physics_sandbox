@@ -6,39 +6,63 @@
 class Object
 {
 public:
+  Object() = delete;
 
-	Object() = delete;
+  Object(const double mass, const physics::stateVector& state) : mass_{ mass }, state_{ state } {};
 
-	Object(const double mass, const physics::stateVector& state) : mass_{mass}, state_{state} {};
+  // Getters
 
-	// Getters
+  double getMass()
+  {
+    return mass_;
+  }
 
-	double getMass() {return mass_;}
+  Eigen::Vector3d getForces()
+  {
+    return force_accumulator_;
+  };
 
-	Eigen::Vector3d getForces() {return force_accumulator_;};	
+  const physics::stateVector getState() const
+  {
+    return state_;
+  };
 
-	const physics::stateVector getState() const {return state_;};
+  double getState(const size_t idx) const
+  {
+    return state_(idx);
+  };
 
-	double getState(const size_t idx) const {return state_(idx);};
+  // Setters
 
-	// Setters
+  void setState(const physics::stateVector& state)
+  {
+    state_ = state;
+  };
 
-	void setState(const physics::stateVector& state) {state_ = state;};
+  void setState(const size_t idx, const double value)
+  {
+    state_(idx) = value;
+  };
 
-	void setState(const size_t idx, const double value) {state_(idx) = value;};
+  void addState(const physics::stateVector& state)
+  {
+    state_ += state;
+  };
 
-	void addState(const physics::stateVector& state) {state_ += state;};
+  void addForces(const Eigen::Vector3d& forces)
+  {
+    force_accumulator_ += forces;
+  };
 
-	void addForces(const Eigen::Vector3d& forces) {force_accumulator_ += forces;};
-
-	void clearForces() {this->force_accumulator_ = {0, 0, 0};};	
+  void clearForces()
+  {
+    this->force_accumulator_ = { 0, 0, 0 };
+  };
 
 private:
-
-	double mass_;
-	physics::stateVector state_;
-  Eigen::Vector3d force_accumulator_ = {0, 0, 0};
-
+  double mass_;
+  physics::stateVector state_;
+  Eigen::Vector3d force_accumulator_ = { 0, 0, 0 };
 };
 
 void applyGravity(Object& object);

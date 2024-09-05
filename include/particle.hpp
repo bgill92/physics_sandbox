@@ -6,15 +6,16 @@
 class Particle : public Object
 {
 public:
-	
-	Particle() = delete;
+  Particle() = delete;
 
-	Particle(const double radius, const double mass, const physics::stateVector& state) : Object{mass, state}, radius_{radius} {};
+  Particle(const double radius, const double mass, const physics::stateVector& state)
+    : Object{ mass, state }, radius_{ radius } {};
 
-	double getRadius() {return radius_;};
+  double getRadius()
+  {
+    return radius_;
+  };
 
 private:
-
-	double radius_;
-
+  double radius_;
 };

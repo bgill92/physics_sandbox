@@ -7,44 +7,43 @@ class Object;
 namespace physics
 {
 
-	constexpr size_t STATE_VECTOR_SIZE {6};
+constexpr size_t STATE_VECTOR_SIZE{ 6 };
 
-  constexpr size_t STATE_VECTOR_X_POS_IDX = 0;  // x position
-  constexpr size_t STATE_VECTOR_Y_POS_IDX = 1;  // y position
-  constexpr size_t STATE_VECTOR_Z_POS_IDX = 2;  // z position
-  
-  constexpr size_t STATE_VECTOR_X_LIN_VEL_IDX = 3;  // x linear velocity
-  constexpr size_t STATE_VECTOR_Y_LIN_VEL_IDX = 4;  // y linear velocity
-  constexpr size_t STATE_VECTOR_Z_LIN_VEL_IDX = 5;  // z linear velocity
+constexpr size_t STATE_VECTOR_X_POS_IDX = 0;  // x position
+constexpr size_t STATE_VECTOR_Y_POS_IDX = 1;  // y position
+constexpr size_t STATE_VECTOR_Z_POS_IDX = 2;  // z position
 
-	constexpr size_t COMMAND_VECTOR_SIZE {3};
+constexpr size_t STATE_VECTOR_X_LIN_VEL_IDX = 3;  // x linear velocity
+constexpr size_t STATE_VECTOR_Y_LIN_VEL_IDX = 4;  // y linear velocity
+constexpr size_t STATE_VECTOR_Z_LIN_VEL_IDX = 5;  // z linear velocity
 
-  constexpr size_t COMMAND_VECTOR_X_LIN_VEL_IDX = 0;  // x linear velocity
-  constexpr size_t COMMAND_VECTOR_Y_LIN_VEL_IDX = 1;  // y linear velocity
-  constexpr size_t COMMAND_VECTOR_Z_LIN_VEL_IDX = 2;  // z linear velocity
-  
-  constexpr size_t COMMAND_VECTOR_X_ACCEL_IDX = 3;  // x acceleration
-  constexpr size_t COMMAND_VECTOR_Y_ACCEL_IDX = 4;  // y acceleration
-  constexpr size_t COMMAND_VECTOR_Z_ACCEL_IDX = 5;  // z acceleration
+constexpr size_t COMMAND_VECTOR_SIZE{ 3 };
 
-	// State is x, y, z, vx, vy, vz
-	using stateVector = Eigen::Matrix<double, STATE_VECTOR_SIZE, 1>;
+constexpr size_t COMMAND_VECTOR_X_LIN_VEL_IDX = 0;  // x linear velocity
+constexpr size_t COMMAND_VECTOR_Y_LIN_VEL_IDX = 1;  // y linear velocity
+constexpr size_t COMMAND_VECTOR_Z_LIN_VEL_IDX = 2;  // z linear velocity
 
-	// State is vx, vy, vz, ax, ay, az
-	using commandVector = Eigen::Matrix<double, COMMAND_VECTOR_SIZE, 1>;
+constexpr size_t COMMAND_VECTOR_X_ACCEL_IDX = 3;  // x acceleration
+constexpr size_t COMMAND_VECTOR_Y_ACCEL_IDX = 4;  // y acceleration
+constexpr size_t COMMAND_VECTOR_Z_ACCEL_IDX = 5;  // z acceleration
 
-	using AMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, STATE_VECTOR_SIZE>;
+// State is x, y, z, vx, vy, vz
+using stateVector = Eigen::Matrix<double, STATE_VECTOR_SIZE, 1>;
 
-	using BMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, COMMAND_VECTOR_SIZE>;
+// State is vx, vy, vz, ax, ay, az
+using commandVector = Eigen::Matrix<double, COMMAND_VECTOR_SIZE, 1>;
 
-	// void update(Object& object, const double timestep);
+using AMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, STATE_VECTOR_SIZE>;
 
-	std::pair<AMatrix, BMatrix> generateAandBMatrices();
+using BMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, COMMAND_VECTOR_SIZE>;
 
-	stateVector update(const AMatrix& A,const BMatrix& B, const stateVector& state, const commandVector& command, const double timestep);
+// void update(Object& object, const double timestep);
 
-	void updateObject(Object& object, const double timestep);
+std::pair<AMatrix, BMatrix> generateAandBMatrices();
 
-};
+stateVector update(const AMatrix& A, const BMatrix& B, const stateVector& state, const commandVector& command,
+                   const double timestep);
 
+void updateObject(Object& object, const double timestep);
 
+};  // namespace physics
