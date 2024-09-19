@@ -13,47 +13,8 @@ namespace
 {
 const unsigned int WINDOW_WIDTH = 1000;
 const unsigned int WINDOW_HEIGHT = 1000;
-const double COEFFICIENT_OF_RESTITUTION = 0.5;
 const double TIMESTEP = 0.1;
 }  // namespace
-
-sf::Vector2f convertToDrawPosition(const Particle& particle)
-{
-  return { static_cast<float>(particle.getState(physics::STATE_VECTOR_X_POS_IDX)),
-           static_cast<float>(WINDOW_HEIGHT) - static_cast<float>(particle.getState(physics::STATE_VECTOR_Y_POS_IDX)) };
-}
-
-void collisionCheckAndResolve(Particle& particle)
-{
-  // If a particle hits the bottom
-  if ((particle.getState(physics::STATE_VECTOR_Y_POS_IDX) - particle.getRadius()) < 0)
-  {
-    particle.setState(physics::STATE_VECTOR_Y_POS_IDX, particle.getRadius());
-    particle.setState(physics::STATE_VECTOR_Y_LIN_VEL_IDX,
-                      -1 * particle.getState(physics::STATE_VECTOR_Y_LIN_VEL_IDX) * COEFFICIENT_OF_RESTITUTION);
-  }
-  // If a particle hits the top
-  if ((particle.getState(physics::STATE_VECTOR_Y_POS_IDX) + particle.getRadius()) > WINDOW_HEIGHT)
-  {
-    particle.setState(physics::STATE_VECTOR_Y_POS_IDX, WINDOW_HEIGHT - particle.getRadius());
-    particle.setState(physics::STATE_VECTOR_Y_LIN_VEL_IDX,
-                      -1 * particle.getState(physics::STATE_VECTOR_Y_LIN_VEL_IDX) * COEFFICIENT_OF_RESTITUTION);
-  }
-  // If a particle hits the right side
-  if ((particle.getRadius() + particle.getState(physics::STATE_VECTOR_X_POS_IDX)) > WINDOW_WIDTH)
-  {
-    particle.setState(physics::STATE_VECTOR_X_POS_IDX, WINDOW_WIDTH - particle.getRadius());
-    particle.setState(physics::STATE_VECTOR_X_LIN_VEL_IDX,
-                      -1 * particle.getState(physics::STATE_VECTOR_X_LIN_VEL_IDX) * COEFFICIENT_OF_RESTITUTION);
-  }
-  // If the particle hits the left side
-  if (particle.getState(physics::STATE_VECTOR_X_POS_IDX) < particle.getRadius())
-  {
-    particle.setState(physics::STATE_VECTOR_X_POS_IDX, particle.getRadius());
-    particle.setState(physics::STATE_VECTOR_X_LIN_VEL_IDX,
-                      -1 * particle.getState(physics::STATE_VECTOR_X_LIN_VEL_IDX) * COEFFICIENT_OF_RESTITUTION);
-  }
-}
 
 int main()
 {
@@ -63,11 +24,7 @@ int main()
 
   const double circle_radius = 50.0;
 
-  sf::CircleShape shape(circle_radius);
-  shape.setOrigin(circle_radius, circle_radius);
-  shape.setFillColor(sf::Color::Green);
-
-  auto p = Particle(circle_radius, 1, { 450, 450, 0, 10, 100, 0 });
+  auto particles = generateParticles(100, WINDOW_HEIGHT, WINDOW_WIDTH);
 
   // create a clock to track the elapsed time
   sf::Clock clock;
@@ -88,25 +45,32 @@ int main()
 
     // draw it
 
-    applyGravity(p);
-
-    // physics::update(p, TIMESTEP);
-    physics::updateObject(p, TIMESTEP);
-    collisionCheckAndResolve(p);
-    p.clearForces();
-
     window.clear();
-    shape.setPosition(convertToDrawPosition(p));
-    window.draw(shape);
+
+    for (size_t i = 0; i < particles.size(); i++)
+    {
+      auto& particle = particles.at(i);
+      // Apply forces
+      applyGravity(particle.getParticle());
+
+      // Update object
+      physics::updateObject(particle.getParticle(), TIMESTEP);
+
+      // Resolve collisions with other particles
+      for (size_t j = i + 1; j < particles.size(); j++)
+      {
+        physics::collisionCheckOtherParticles(particle, particles.at(j));
+      }
+
+      // Resolve collisions with wall
+      physics::collisionCheckWall(particle.getParticle(),  WINDOW_HEIGHT, WINDOW_WIDTH);
+      particle.getParticle().clearForces();
+
+      particle.setDrawPosition(WINDOW_HEIGHT);
+      window.draw(particle.getShape());      
+    }
+
     window.display();
-
-    // Get the end time of the loop
-    const auto end_time = std::chrono::high_resolution_clock::now();
-
-    // Calculate how much time the loop took
-    std::chrono::duration<double, std::milli> elapsed_time = end_time - start_time;
-
-    // std::cout <<  "Time in milliseconds: " << elapsed_time.count() << "\n";
   }
 
   return 0;

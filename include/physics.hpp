@@ -3,6 +3,8 @@
 #include <Eigen/Dense>
 
 class Object;
+class Particle;
+class DrawableParticle;
 
 namespace physics
 {
@@ -37,13 +39,13 @@ using AMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, STATE_VECTOR_SIZE>;
 
 using BMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, COMMAND_VECTOR_SIZE>;
 
-// void update(Object& object, const double timestep);
-
-std::pair<AMatrix, BMatrix> generateAandBMatrices();
-
 stateVector update(const AMatrix& A, const BMatrix& B, const stateVector& state, const commandVector& command,
                    const double timestep);
 
 void updateObject(Object& object, const double timestep);
+
+void collisionCheckWall(Particle& particle, const double WINDOW_HEIGHT, const double WINDOW_WIDTH);
+
+void collisionCheckOtherParticles(DrawableParticle& drawable_particle_1, DrawableParticle& drawable_particle_2);
 
 };  // namespace physics
