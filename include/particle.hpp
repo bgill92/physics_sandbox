@@ -43,16 +43,22 @@ struct DrawableParticle
 {
   DrawableParticle() = delete;
 
-  DrawableParticle(Particle& particle, const sf::Color& color) : particle_{std::move(particle)}
+  DrawableParticle(Particle& particle, const sf::Color& color) : particle_{ std::move(particle) }
   {
     circle_ = sf::CircleShape(particle_.getRadius());
     circle_.setOrigin(particle_.getRadius(), particle_.getRadius());
     circle_.setFillColor(color);
   }
 
-  Particle& getParticle() {return particle_;};
+  Particle& getParticle()
+  {
+    return particle_;
+  };
 
-  sf::CircleShape& getShape() {return circle_;};
+  sf::CircleShape& getShape()
+  {
+    return circle_;
+  };
 
   void setDrawPosition(const unsigned int WINDOW_HEIGHT)
   {
@@ -64,4 +70,5 @@ private:
   sf::CircleShape circle_;
 };
 
-std::vector<DrawableParticle> generateParticles(const size_t num_particles, const unsigned int WINDOW_HEIGHT, const unsigned int WINDOW_WIDTH);
+std::vector<DrawableParticle> generateParticles(const size_t num_particles, const unsigned int WINDOW_HEIGHT,
+                                                const unsigned int WINDOW_WIDTH);

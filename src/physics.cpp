@@ -8,17 +8,18 @@
 
 namespace
 {
-  const double COEFFICIENT_OF_RESTITUTION = 0.5;
+const double COEFFICIENT_OF_RESTITUTION = 0.5;
 };
 
 namespace physics
 {
-template<typename T, typename U>
-T update(const T& state, const U& forces, const double timestep, std::function<T(const T&, const T&, const U&, const double)> derivative_func)
+template <typename T, typename U>
+T update(const T& state, const U& forces, const double timestep,
+         std::function<T(const T&, const T&, const U&, const double)> derivative_func)
 {
-
-  const auto bound_derivative_func = [&state, &forces, &derivative_func, &timestep](const T& delta_state)
-  {return derivative_func(state, delta_state, forces, timestep);};
+  const auto bound_derivative_func = [&state, &forces, &derivative_func, &timestep](const T& delta_state) {
+    return derivative_func(state, delta_state, forces, timestep);
+  };
 
   // k1 is the slope at the beginning of the time step
   // If we use the slope k1 to step halfway through the time step, then k2 is an estimate of the slope at the midpoint.
@@ -37,10 +38,14 @@ void updateObject(Object& object, const double timestep)
 {
   const auto dynamics_model = dynamics::PointMass(timestep);
 
-  const auto dynamics_update_func = [&dynamics_model](const physics::stateVector& state, const physics::stateVector& derivative, const physics::commandVector& forces, const double timestep)
-  {return dynamics_model.derivativeAtState(state, derivative, forces, timestep);};
+  const auto dynamics_update_func = [&dynamics_model](const physics::stateVector& state,
+                                                      const physics::stateVector& derivative,
+                                                      const physics::commandVector& forces, const double timestep) {
+    return dynamics_model.derivativeAtState(state, derivative, forces, timestep);
+  };
 
-  object.addState(update<physics::stateVector, physics::commandVector>(object.getState(), object.getForces() / object.getMass(), timestep, dynamics_update_func));
+  object.addState(update<physics::stateVector, physics::commandVector>(
+      object.getState(), object.getForces() / object.getMass(), timestep, dynamics_update_func));
 }
 
 void collisionCheckWall(Particle& particle, const double WINDOW_HEIGHT, const double WINDOW_WIDTH)
@@ -88,44 +93,46 @@ void collisionCheckOtherParticles(DrawableParticle& drawable_particle_1, Drawabl
   Eigen::Vector3d delta_pos = (pos_2 - pos_1);
 
   // If the distance between the particles is greater than the sum of the radius, then they are not in collision
-  if (delta_pos.norm() > (particle_1.getRadius() + particle_2.getRadius())) 
+  if (delta_pos.norm() > (particle_1.getRadius() + particle_2.getRadius()))
   {
     return;
   }
 
   // How much to push the particle along the collision axis
-  auto corr = (particle_1.getRadius() + particle_2.getRadius() - delta_pos.norm())/2.0;
+  auto corr = (particle_1.getRadius() + particle_2.getRadius() - delta_pos.norm()) / 2.0;
   // Normalize the vector along the collision axis
   delta_pos.normalize();
 
-  // Calculate the position adjustment and add it to the state of the first particle 
-  stateVector pos_adjustment_1 {0, 0, 0, 0, 0, 0};
-  pos_adjustment_1.head<3>() = delta_pos*-corr;
+  // Calculate the position adjustment and add it to the state of the first particle
+  stateVector pos_adjustment_1{ 0, 0, 0, 0, 0, 0 };
+  pos_adjustment_1.head<3>() = delta_pos * -corr;
   particle_1.addState(pos_adjustment_1);
 
-  // Calculate the position adjustment and add it to the state of the second particle 
-  stateVector pos_adjustment_2 {0, 0, 0, 0, 0, 0};
-  pos_adjustment_2.head<3>() = delta_pos*corr;
+  // Calculate the position adjustment and add it to the state of the second particle
+  stateVector pos_adjustment_2{ 0, 0, 0, 0, 0, 0 };
+  pos_adjustment_2.head<3>() = delta_pos * corr;
   particle_2.addState(pos_adjustment_2);
 
   // Get the velocity along the collision axis
-  auto vel_axis_1 = (particle_1.getState().segment(3,3)).dot(delta_pos);
-  auto vel_axis_2 = (particle_2.getState().segment(3,3)).dot(delta_pos);
+  auto vel_axis_1 = (particle_1.getState().segment(3, 3)).dot(delta_pos);
+  auto vel_axis_2 = (particle_2.getState().segment(3, 3)).dot(delta_pos);
 
   const auto m1 = particle_1.getMass();
   const auto m2 = particle_2.getMass();
 
   // Calculate the new velocities
-  const auto new_vel_axis_1 = (m1*vel_axis_1 + m2*vel_axis_2 - m2*(vel_axis_1 - vel_axis_2)*COEFFICIENT_OF_RESTITUTION)/(m1 + m2);
-  const auto new_vel_axis_2 = (m1*vel_axis_1 + m2*vel_axis_2 - m1*(vel_axis_2 - vel_axis_1)*COEFFICIENT_OF_RESTITUTION)/(m1 + m2);
+  const auto new_vel_axis_1 =
+      (m1 * vel_axis_1 + m2 * vel_axis_2 - m2 * (vel_axis_1 - vel_axis_2) * COEFFICIENT_OF_RESTITUTION) / (m1 + m2);
+  const auto new_vel_axis_2 =
+      (m1 * vel_axis_1 + m2 * vel_axis_2 - m1 * (vel_axis_2 - vel_axis_1) * COEFFICIENT_OF_RESTITUTION) / (m1 + m2);
 
   // Set the new velocities
-  stateVector vel_adjustment_1 {0, 0, 0, 0, 0, 0};
-  vel_adjustment_1.tail<3>() = delta_pos*(new_vel_axis_1 - vel_axis_1);
+  stateVector vel_adjustment_1{ 0, 0, 0, 0, 0, 0 };
+  vel_adjustment_1.tail<3>() = delta_pos * (new_vel_axis_1 - vel_axis_1);
   particle_1.addState(vel_adjustment_1);
 
-  stateVector vel_adjustment_2 {0, 0, 0, 0, 0, 0};
-  vel_adjustment_2.tail<3>() = delta_pos*(new_vel_axis_2 - vel_axis_2);
+  stateVector vel_adjustment_2{ 0, 0, 0, 0, 0, 0 };
+  vel_adjustment_2.tail<3>() = delta_pos * (new_vel_axis_2 - vel_axis_2);
   particle_2.addState(vel_adjustment_2);
 }
 

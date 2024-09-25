@@ -75,11 +75,11 @@ int main()
       }
 
       // Resolve collisions with wall
-      physics::collisionCheckWall(particle.getParticle(),  WINDOW_HEIGHT, WINDOW_WIDTH);
+      physics::collisionCheckWall(particle.getParticle(), WINDOW_HEIGHT, WINDOW_WIDTH);
       particle.getParticle().clearForces();
 
       particle.setDrawPosition(WINDOW_HEIGHT);
-      window.draw(particle.getShape());      
+      window.draw(particle.getShape());
     }
 
     window.display();
