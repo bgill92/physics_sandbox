@@ -1,11 +1,26 @@
 #pragma once
 
-#include "physics.hpp"
+#include "common.hpp"
 #include "object.hpp"
 
-#include <SFML/Graphics.hpp>
+// class Particle : public Object
+// {
+// public:
+//   Particle() = delete;
 
-class Particle : public Object
+//   Particle(const double radius, const double mass, const physics::stateVector& state)
+//     : Object{ mass, state }, radius_{ radius } {};
+
+//   double getRadius()
+//   {
+//     return radius_;
+//   };
+
+// private:
+//   double radius_;
+// };
+
+class Particle
 {
 public:
   Particle() = delete;

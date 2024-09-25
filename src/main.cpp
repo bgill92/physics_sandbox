@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 
+#include "common.hpp"
 #include "physics.hpp"
 #include "object.hpp"
 #include "particle.hpp"
@@ -25,6 +26,17 @@ int main()
   const double circle_radius = 50.0;
 
   auto particles = generateParticles(100, WINDOW_HEIGHT, WINDOW_WIDTH);
+
+  // Particle d1 {50, 1, {100, 450, 0, 10, 0 ,0}};
+  // Particle d2 {25, 1, {900, 410, 0, -10, 0 ,0}};
+
+  // DrawableParticle dp1 {d1, sf::Color::Red};
+  // DrawableParticle dp2 {d2, sf::Color::Green};
+
+  // std::vector<DrawableParticle> particles;
+
+  // particles.push_back(dp1);
+  // particles.push_back(dp2);
 
   // create a clock to track the elapsed time
   sf::Clock clock;

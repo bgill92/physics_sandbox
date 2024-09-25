@@ -22,7 +22,7 @@ find_package(SFML COMPONENTS graphics REQUIRED)
 #FetchContent_MakeAvailable(yaml-cpp)
 
 # Add the executable
-add_executable(physics_sandbox src/main.cpp src/object.cpp src/particle.cpp src/physics.cpp)
+add_executable(physics_sandbox src/dynamics.cpp src/main.cpp src/object.cpp src/particle.cpp src/physics.cpp)
 
 target_include_directories(physics_sandbox PRIVATE include)
 target_link_libraries(physics_sandbox sfml-graphics pthread Eigen3::Eigen)

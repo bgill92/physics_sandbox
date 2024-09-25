@@ -3,5 +3,5 @@
 void applyGravity(Object& object)
 {
   // Force of gravity is mass * acceleration due to gravity, duh
-  object.addForces({ 0, -90.81 * object.getMass(), 0 });
+  object.addForces({ 0, -9.81 * object.getMass(), 0 });
 }

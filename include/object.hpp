@@ -1,6 +1,6 @@
 #pragma once
 
-#include "physics.hpp"
+#include "common.hpp"
 #include <Eigen/Dense>
 
 class Object

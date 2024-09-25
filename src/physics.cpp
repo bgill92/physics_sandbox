@@ -1,7 +1,9 @@
-#include "physics.hpp"
+#include "dynamics.hpp"
 #include "object.hpp"
 #include "particle.hpp"
+#include "physics.hpp"
 
+#include <functional>
 #include <iostream>
 
 namespace
@@ -11,61 +13,34 @@ namespace
 
 namespace physics
 {
-// TODO: Make this a templated function with T as the return type
-// TODO: Make it such that the derivative function can be passed into runge-kutta
-
-stateVector update(const AMatrix& A, const BMatrix& B, const stateVector& state, const commandVector& command,
-                   const double timestep)
+template<typename T, typename U>
+T update(const T& state, const U& forces, const double timestep, std::function<T(const T&, const T&, const U&, const double)> derivative_func)
 {
-  // Update is Runge-Kutta 4
-  // Essentially we calculate the derivative at four points, take a weighted average of the derivatives,
-  // and find the next state using that weighted derivative average
-  const auto evaluateDerivative = [&timestep](const AMatrix& A, const BMatrix& B, const stateVector& state,
-                                              const stateVector& derivative, const commandVector& command) {
-    // Calculate the next state given the derivative, and then calculate the derivative at the next state
-    return A * (state + derivative * timestep) + B * command;
-  };
+
+  const auto bound_derivative_func = [&state, &forces, &derivative_func, &timestep](const T& delta_state)
+  {return derivative_func(state, delta_state, forces, timestep);};
 
   // k1 is the slope at the beginning of the time step
   // If we use the slope k1 to step halfway through the time step, then k2 is an estimate of the slope at the midpoint.
   // If we use the slope k2 to step halfway through the time step, then k3 is another estimate of the slope at the
   // midpoint. Finally, we use the slope, k3, to step all the way across the time step (to t₀+h), and k4 is an estimate
   // of the slope at the endpoint.
-  const auto k1 = evaluateDerivative(A, B, state, stateVector(), command);
-  const auto k2 = evaluateDerivative(A, B, state, k1 * timestep * 0.5, command);
-  const auto k3 = evaluateDerivative(A, B, state, k2 * timestep * 0.5, command);
-  const auto k4 = evaluateDerivative(A, B, state, k3 * timestep, command);
+  const T k1 = bound_derivative_func(stateVector().setZero());
+  const T k2 = bound_derivative_func(k1 * timestep * 0.5);
+  const T k3 = bound_derivative_func(k2 * timestep * 0.5);
+  const T k4 = bound_derivative_func(k3 * timestep);
 
   return (1.0 / 6.0) * timestep * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
 }
 
-std::pair<AMatrix, BMatrix> generateAandBMatrices(const double timestep)
-{
-  // A and B matrices for simple linear Newtonian motion
-  // The A matrix in this case just gets the velocities of the state
-  AMatrix A{ { 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 }, //
-  					 { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 }, //
-  					 { 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }, //
-             { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }, //
-             { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }, //
-             { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
-
-  // The B matrix gets the acceleration due to the forces
-  BMatrix B{ { 0.0, 0.0, 0.0 }, //
-             { 0.0, 0.0, 0.0 }, //
-             { 0.0, 0.0, 0.0 }, //
-             { timestep, 0.0, 0.0 }, //
-             { 0.0, timestep, 0.0 }, //
-             { 0.0, 0.0, timestep } };
-
-  return { A, B };
-}
-
 void updateObject(Object& object, const double timestep)
 {
-  const auto AandB = generateAandBMatrices(timestep);
+  const auto dynamics_model = dynamics::PointMass(timestep);
 
-  object.addState(update(AandB.first, AandB.second, object.getState(), object.getForces() / object.getMass(), timestep));
+  const auto dynamics_update_func = [&dynamics_model](const physics::stateVector& state, const physics::stateVector& derivative, const physics::commandVector& forces, const double timestep)
+  {return dynamics_model.derivativeAtState(state, derivative, forces, timestep);};
+
+  object.addState(update<physics::stateVector, physics::commandVector>(object.getState(), object.getForces() / object.getMass(), timestep, dynamics_update_func));
 }
 
 void collisionCheckWall(Particle& particle, const double WINDOW_HEIGHT, const double WINDOW_WIDTH)
@@ -105,6 +80,7 @@ void collisionCheckOtherParticles(DrawableParticle& drawable_particle_1, Drawabl
   auto& particle_1 = drawable_particle_1.getParticle();
   auto& particle_2 = drawable_particle_2.getParticle();
 
+  // Get the positions
   Eigen::Vector3d pos_1 = particle_1.getState().segment<3>(0);
   Eigen::Vector3d pos_2 = particle_2.getState().segment<3>(0);
 
@@ -127,7 +103,7 @@ void collisionCheckOtherParticles(DrawableParticle& drawable_particle_1, Drawabl
   pos_adjustment_1.head<3>() = delta_pos*-corr;
   particle_1.addState(pos_adjustment_1);
 
-  // Calculate the position adjustment and add it to the state of the first particle 
+  // Calculate the position adjustment and add it to the state of the second particle 
   stateVector pos_adjustment_2 {0, 0, 0, 0, 0, 0};
   pos_adjustment_2.head<3>() = delta_pos*corr;
   particle_2.addState(pos_adjustment_2);
