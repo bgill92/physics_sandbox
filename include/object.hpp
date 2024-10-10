@@ -1,68 +1,39 @@
 #pragma once
 
 #include "common.hpp"
-#include <Eigen/Dense>
+#include "dynamics.hpp"
 
-class Object
+/**
+ * @brief ObjectBase class which mostly has to do with getting and setting state at the moment
+ */
+class ObjectBase
 {
 public:
-  Object() = delete;
 
-  Object(const double mass, const physics::stateVector& state) : mass_{ mass }, state_{ state } {};
+	// A Base class should have a virtual destructor per https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c35-a-base-class-destructor-should-be-either-public-and-virtual-or-protected-and-non-virtual
+	virtual void ~ObjectBase() = default;
 
-  // Getters
+	// Getters
+	virtual physics::State& getState() = 0;
 
-  double getMass()
-  {
-    return mass_;
-  }
+	virtual physics::stateVector& getStateVector() = 0;
 
-  Eigen::Vector3d getForces()
-  {
-    return force_accumulator_;
-  };
+	virtual dynamics::DynamicsBase& getDynamics() = 0;
 
-  const physics::stateVector getState() const
-  {
-    return state_;
-  };
+	virtual double getMass() = 0;
 
-  double getState(const size_t idx) const
-  {
-    return state_(idx);
-  };
+	virtual void draw() = 0;
 
-  // Setters
+	// virtual physics::commandVector& getForces() = 0;
 
-  void setState(const physics::stateVector& state)
-  {
-    state_ = state;
-  };
+	// virtual physics::commandVector& getAcceleration() = 0;
 
-  void setState(const size_t idx, const double value)
-  {
-    state_(idx) = value;
-  };
 
-  void addState(const physics::stateVector& state)
-  {
-    state_ += state;
-  };
+	// virtual double getMass() const = 0;
 
-  void addForces(const Eigen::Vector3d& forces)
-  {
-    force_accumulator_ += forces;
-  };
+	// // Setters
+	// virtual void setState(const physics::stateVector& state) = 0;
 
-  void clearForces()
-  {
-    this->force_accumulator_ = { 0, 0, 0 };
-  };
+	// virtual void setForces(const physics::commandVector& forces) = 0;
 
-private:
-  double mass_;
-  physics::stateVector state_;
-  Eigen::Vector3d force_accumulator_ = { 0, 0, 0 };
-};
-
-void applyGravity(Object& object);
+}

@@ -1,23 +1,40 @@
 #pragma once
 
+#include <memory>
+
 #include <Eigen/Dense>
 
 #include "common.hpp"
-
-class Object;
-class Particle;
-class DrawableParticle;
+#include "particle.hpp"
+#include "object.hpp"
 
 namespace physics
 {
 
-stateVector update(const AMatrix& A, const BMatrix& B, const stateVector& state, const commandVector& command,
-                   const double timestep);
+template <typename T>
+using Integrator = T(*)(const T& value, const double timestep, T (*)(const T&, const double));
 
-void updateObject(Object& object, const double timestep);
+struct PhysicsManager
+{
 
-void collisionCheckWall(Particle& particle, const double WINDOW_HEIGHT, const double WINDOW_WIDTH);
+  PhysicsManager(const double timestep, std::vector<ObjectBase>& objects, Integrator integrator) : timestep_{timestep}, objects_(std::move(objects)), integrator_(integrator);
 
-void collisionCheckOtherParticles(DrawableParticle& drawable_particle_1, DrawableParticle& drawable_particle_2);
+  void updateObjects(const size_t idx);
+
+  void applyGravity(const size_t idx);
+
+  // void collisionCheckWall(Particle& particle, const double WINDOW_HEIGHT, const double WINDOW_WIDTH);
+
+  void collisionCheckWall(const size_t idx, const double WINDOW_HEIGHT, const double WINDOW_WIDTH);
+
+  void step();
+
+private:
+  double timestep_;
+  std::vector<std::unique_ptr<ObjectBase>> objects_;
+  Integrator integrator;
+}
+
+// void collisionCheckOtherParticles(Particle& particle_1, Particle& particle_2);
 
 };  // namespace physics

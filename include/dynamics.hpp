@@ -7,30 +7,39 @@
 namespace dynamics
 {
 
-struct PointMass
+struct DynamicsBase
+{
+
+  virtual ~DynamicsBase() = default;
+
+  virtual physics::stateVector stateDerivative(const physics::stateVector& derivative_at_state, const double timestep) const = 0;
+}
+
+struct PointMass final : public DynamicsBase
 {
   PointMass() = delete;
 
-  PointMass(const double mass, const double timestep) : state_{ mass }, timestep_{ timestep }
-  {
-    B *= timestep;
-  };
-  PointMass(const double mass, const double timestep, const physics::stateVector& state)
-    : state_{ mass, state }, timestep_{ timestep }
-  {
-    B *= timestep;
-  };
+  PointMass(const double mass) : state_{ mass } {};
 
-  physics::stateVector derivativeAtState(const physics::stateVector& derivative, const double timestep) const;
+  PointMass(const double mass, const physics::stateVector& state)
+    : state_{ mass, state } {};
+
 
   physics::State& getState()
   {
     return state_;
   }
 
+  const physics::State& getState() const
+  {
+    return state_;
+  }
+
+  // Overwritten function
+  physics::stateVector stateDerivative(const physics::stateVector& derivative_at_state, const double timestep) const override;
+
 private:
   physics::State state_;
-  double timestep_;
 
   // A and B matrices for simple linear Newtonian motion
   // The A matrix in this case just gets the velocities of the state

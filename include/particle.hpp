@@ -1,74 +1,49 @@
 #pragma once
 
 #include "common.hpp"
+#include "dynamics.hpp"
+#include "graphics.hpp"
 #include "object.hpp"
 
-// class Particle : public Object
-// {
-// public:
-//   Particle() = delete;
-
-//   Particle(const double radius, const double mass, const physics::stateVector& state)
-//     : Object{ mass, state }, radius_{ radius } {};
-
-//   double getRadius()
-//   {
-//     return radius_;
-//   };
-
-// private:
-//   double radius_;
-// };
-
-class Particle
+class Particle final : public ObjectBase 
 {
 public:
   Particle() = delete;
 
-  Particle(const double radius, const double mass, const physics::stateVector& state)
-    : Object{ mass, state }, radius_{ radius } {};
+  Particle(const double radius, const double mass, const physics::stateVector& state, const sf::Color& color)
+  : radius_{ radius }, point_mass_{mass, state}, graphics_{radius, color} {};
 
   double getRadius()
   {
     return radius_;
   };
 
+  dynamics::PointMass& getDynamics() {return point_mass_;}
+
+  graphics::CircleGraphics& getGraphics() {return graphics_;}
+
+  // Overwritten functions
+
+  physics::State& getState() override {point_mass_.getState();}
+
+  physics::stateVector& getStateVector() override {point_mass_.getState().getStateVector();}
+
+  double getMass() override {point_mass_.getState().getMass();}
+
+  // physics::commandVector& getForces() override {point_mass_.getStateObject().getForces();}
+
+  // physics::commandVector getAcceleration() override {point_mass_.getStateObject().getForces()/point_mass_.getStateObject().getMass()};
+
+  // double getMass() const override {point_mass_.getStateObject().getMass()};
+
+  // void setState(const physics::stateVector& state) override {point_mass_.getStateObject().setState(state);};
+
+  // void setForces(const physics::commandVector& forces) override {point_mass_.getStateObject().setForces(forces);};
+
 private:
   double radius_;
+  dynamics::PointMass point_mass_;
+  graphics::CircleGraphics graphics_;
 };
 
-sf::Vector2f convertToDrawPosition(const Particle& particle, const unsigned int WINDOW_HEIGHT);
-
-struct DrawableParticle
-{
-  DrawableParticle() = delete;
-
-  DrawableParticle(Particle& particle, const sf::Color& color) : particle_{ std::move(particle) }
-  {
-    circle_ = sf::CircleShape(particle_.getRadius());
-    circle_.setOrigin(particle_.getRadius(), particle_.getRadius());
-    circle_.setFillColor(color);
-  }
-
-  Particle& getParticle()
-  {
-    return particle_;
-  };
-
-  sf::CircleShape& getShape()
-  {
-    return circle_;
-  };
-
-  void setDrawPosition(const unsigned int WINDOW_HEIGHT)
-  {
-    circle_.setPosition(convertToDrawPosition(particle_, WINDOW_HEIGHT));
-  }
-
-private:
-  Particle particle_;
-  sf::CircleShape circle_;
-};
-
-std::vector<DrawableParticle> generateParticles(const size_t num_particles, const unsigned int WINDOW_HEIGHT,
-                                                const unsigned int WINDOW_WIDTH);
+// std::vector<Particle> generateParticles(const size_t num_particles, const unsigned int WINDOW_HEIGHT, const unsigned int WINDOW_WIDTH);

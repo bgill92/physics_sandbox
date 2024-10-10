@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "common.hpp"
+#include "integrator"
 #include "physics.hpp"
-#include "object.hpp"
 #include "particle.hpp"
 
 #include <SFML/Graphics.hpp>
@@ -27,16 +27,15 @@ int main()
 
   auto particles = generateParticles(100, WINDOW_HEIGHT, WINDOW_WIDTH);
 
-  // Particle d1 {50, 1, {100, 450, 0, 10, 0 ,0}};
-  // Particle d2 {25, 1, {900, 410, 0, -10, 0 ,0}};
+  auto physics_manager = PhysicsManager(particles, integrator::RK4<physics::stateVector>)
 
-  // DrawableParticle dp1 {d1, sf::Color::Red};
-  // DrawableParticle dp2 {d2, sf::Color::Green};
+  // Particle p1 {50, 1, {100, 450, 0, 50, 0 ,0}, sf::Color::Red};
+  // Particle p2 {25, 1, {900, 410, 0, -50, 0 ,0}, sf::Color::Green};
 
-  // std::vector<DrawableParticle> particles;
+  // std::vector<Particle> particles;
 
-  // particles.push_back(dp1);
-  // particles.push_back(dp2);
+  // particles.push_back(p1);
+  // particles.push_back(p2);
 
   // create a clock to track the elapsed time
   sf::Clock clock;
@@ -63,10 +62,10 @@ int main()
     {
       auto& particle = particles.at(i);
       // Apply forces
-      applyGravity(particle.getParticle());
+      // physics::applyGravity(particle.getDynamics().getStateObject());
 
       // Update object
-      physics::updateObject(particle.getParticle(), TIMESTEP);
+      physics::updateParticle(particle, TIMESTEP);
 
       // Resolve collisions with other particles
       for (size_t j = i + 1; j < particles.size(); j++)
@@ -75,14 +74,24 @@ int main()
       }
 
       // Resolve collisions with wall
-      physics::collisionCheckWall(particle.getParticle(), WINDOW_HEIGHT, WINDOW_WIDTH);
-      particle.getParticle().clearForces();
+      physics::collisionCheckWall(particle, WINDOW_HEIGHT, WINDOW_WIDTH);
+      particle.getDynamics().getStateObject().clearForces();
 
-      particle.setDrawPosition(WINDOW_HEIGHT);
-      window.draw(particle.getShape());
+      particle.getGraphics().setDrawPosition(particle.getDynamics().getStateObject(), WINDOW_HEIGHT);
+      window.draw(particle.getGraphics().getShape());
     }
 
     window.display();
+
+    const auto end_time = std::chrono::high_resolution_clock::now();
+
+    // Calculate the duration in microseconds (or any other unit)
+    const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
+    // Output the duration
+    std::cout << "Loop time: " << duration.count() << " microseconds" << std::endl;
+
+
   }
 
   return 0;

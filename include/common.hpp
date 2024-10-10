@@ -9,26 +9,26 @@ constexpr size_t STATE_VECTOR_SIZE{ 6 };
 
 constexpr size_t STATE_VECTOR_X_POS_IDX = 0;  // x position
 constexpr size_t STATE_VECTOR_Y_POS_IDX = 1;  // y position
-constexpr size_t STATE_VECTOR_Z_POS_IDX = 2;  // z position
+constexpr size_t STATE_VECTOR_THETA_IDX = 2;  // angle
 
 constexpr size_t STATE_VECTOR_X_LIN_VEL_IDX = 3;  // x linear velocity
 constexpr size_t STATE_VECTOR_Y_LIN_VEL_IDX = 4;  // y linear velocity
-constexpr size_t STATE_VECTOR_Z_LIN_VEL_IDX = 5;  // z linear velocity
+constexpr size_t STATE_VECTOR_ANG_VEL_IDX = 5;  // angular velocity
 
 constexpr size_t COMMAND_VECTOR_SIZE{ 3 };
 
 constexpr size_t COMMAND_VECTOR_X_LIN_VEL_IDX = 0;  // x linear velocity
 constexpr size_t COMMAND_VECTOR_Y_LIN_VEL_IDX = 1;  // y linear velocity
-constexpr size_t COMMAND_VECTOR_Z_LIN_VEL_IDX = 2;  // z linear velocity
+constexpr size_t COMMAND_VECTOR_ANG_VEL_IDX = 2;  // z linear velocity
 
 constexpr size_t COMMAND_VECTOR_X_ACCEL_IDX = 3;  // x acceleration
 constexpr size_t COMMAND_VECTOR_Y_ACCEL_IDX = 4;  // y acceleration
-constexpr size_t COMMAND_VECTOR_Z_ACCEL_IDX = 5;  // z acceleration
+constexpr size_t COMMAND_VECTOR_ANG_ACCEL_IDX = 5;  // angular acceleration
 
-// State is x, y, z, vx, vy, vz
+// State is x, y, theta, vx, vy, omega_z
 using stateVector = Eigen::Matrix<double, STATE_VECTOR_SIZE, 1>;
 
-// State is vx, vy, vz, ax, ay, az
+// command is Fx, Fy, tau
 using commandVector = Eigen::Matrix<double, COMMAND_VECTOR_SIZE, 1>;
 
 using AMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, STATE_VECTOR_SIZE>;
@@ -39,7 +39,7 @@ class State
 {
 public:
   State() = delete;
-  State(const double mass) : mass_{ mass }
+  explicit State(const double mass) : mass_{ mass }
   {
   }
   State(const double mass, const stateVector& state) : mass_{ mass }, state_{ state }
@@ -52,48 +52,53 @@ public:
     return mass_;
   }
 
-  const stateVector getState() const
+  const stateVector getStateVector() const
   {
     return state_;
   };
 
-  Eigen::Vector3d& getForces()
+  Eigen::Vector3d& getForceVector()
   {
     return force_accumulator_;
   };
 
-  double getState(const size_t idx) const
+  const Eigen::Vector3d& getForceVector() const
+  {
+    return force_accumulator_;
+  };
+
+  double getStateVectorAtIdx(const size_t idx) const
   {
     return state_(idx);
   };
 
   // Setters
-  void setState(const stateVector& state)
+  void setStateVector(const stateVector& state)
   {
     state_ = state;
   };
 
-  void setState(const size_t idx, const double value)
+  void setStateVectorAtIdx(const size_t idx, const double value)
   {
     state_(idx) = value;
   };
 
-  void addState(const stateVector& state)
+  void addStateVector(const stateVector& state)
   {
     state_ += state;
   };
 
-  void setForces(const Eigen::Vector3d& forces)
+  void setForceVector(const Eigen::Vector3d& forces)
   {
     force_accumulator_ = forces;
   };
 
-  void addForces(const Eigen::Vector3d& forces)
+  void addForceVector(const Eigen::Vector3d& forces)
   {
     force_accumulator_ += forces;
   };
 
-  void clearForces()
+  void clearForceVector()
   {
     this->force_accumulator_.setZero();
   };
