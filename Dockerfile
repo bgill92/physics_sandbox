@@ -21,14 +21,11 @@ RUN apt-get update \
         libsfml-dev \
         libeigen3-dev \
         python3-pip \
+        sudo \
         vim \
         wget \
         ssh-client \
     && rm -rf /var/lib/apt/lists/*
-
-# install some pip packages needed for testing
-RUN python3 -m pip install -U \
-    pre-commit
 
 # copy source to install repo dependencies
 WORKDIR /${REPO}
@@ -67,7 +64,7 @@ RUN python3 -m pip install --no-cache-dir \
 RUN groupadd --gid $GID $USER \
     && useradd --no-log-init --uid $GID --gid $UID -m $USER --groups sudo \
     && echo $USER ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USER \
-    && chmod 0440 /etc/sudoers.d/$USER \    
+    && chmod 0440 /etc/sudoers.d/$USER \
     && touch /home/${USER}/.bashrc \
     && chown -R ${GID}:${UID} /home/${USER}
 

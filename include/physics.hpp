@@ -1,40 +1,39 @@
 #pragma once
 
-#include <memory>
+#include <concepts>
 
 #include <Eigen/Dense>
+#include <SFML/Graphics.hpp>
 
 #include "common.hpp"
 #include "particle.hpp"
 #include "object.hpp"
 
+
 namespace physics
 {
-
-template <typename T>
-using Integrator = T(*)(const T& value, const double timestep, T (*)(const T&, const double));
 
 struct PhysicsManager
 {
 
-  PhysicsManager(const double timestep, std::vector<ObjectBase>& objects, Integrator integrator) : timestep_{timestep}, objects_(std::move(objects)), integrator_(integrator);
+  PhysicsManager(const double timestep, std::vector<Object>& objects) : timestep_{timestep}, objects_(objects) {}
 
-  void updateObjects(const size_t idx);
+  void updateObject(const size_t idx);
 
   void applyGravity(const size_t idx);
 
-  // void collisionCheckWall(Particle& particle, const double WINDOW_HEIGHT, const double WINDOW_WIDTH);
+  void clearForces(const size_t idx);
 
   void collisionCheckWall(const size_t idx, const double WINDOW_HEIGHT, const double WINDOW_WIDTH);
 
-  void step();
+  void collisionCheck(Particle& particle_1, Particle& particle_2);
+
+  void step(const size_t idx);
 
 private:
   double timestep_;
-  std::vector<std::unique_ptr<ObjectBase>> objects_;
-  Integrator integrator;
-}
+  std::vector<Object>& objects_;
+};
 
-// void collisionCheckOtherParticles(Particle& particle_1, Particle& particle_2);
 
 };  // namespace physics

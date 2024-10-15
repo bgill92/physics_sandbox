@@ -4,8 +4,8 @@
 
 namespace dynamics
 {
-physics::stateVector PointMass::stateDerivative(const physics::stateVector& derivative_at_state, const double timestep) const override
+physics::State PointMass::stateDerivative(const physics::State& derivative_at_state, const double timestep) const
 {
-  return A * (this->getState().getStateVector() + derivative_at_state * timestep) + B * timestep * this->getState().getForceVector();
+  return A * (this->state_ + derivative_at_state * timestep) + B * timestep * this->force_;
 }
 }  // namespace dynamics

@@ -1,10 +1,11 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "common.hpp"
-#include "integrator"
+#include "integrator.hpp"
 #include "physics.hpp"
 #include "particle.hpp"
 
@@ -14,7 +15,7 @@ namespace
 {
 const unsigned int WINDOW_WIDTH = 1000;
 const unsigned int WINDOW_HEIGHT = 1000;
-const double TIMESTEP = 0.1;
+const double TIMESTEP = 0.01;
 }  // namespace
 
 int main()
@@ -23,22 +24,29 @@ int main()
   sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Simulator");
   window.setFramerateLimit(60);
 
-  const double circle_radius = 50.0;
+  auto objects = generateParticles(100, WINDOW_HEIGHT, WINDOW_WIDTH);
 
-  auto particles = generateParticles(100, WINDOW_HEIGHT, WINDOW_WIDTH);
-
-  auto physics_manager = PhysicsManager(particles, integrator::RK4<physics::stateVector>)
 
   // Particle p1 {50, 1, {100, 450, 0, 50, 0 ,0}, sf::Color::Red};
   // Particle p2 {25, 1, {900, 410, 0, -50, 0 ,0}, sf::Color::Green};
 
-  // std::vector<Particle> particles;
+  // std::vector<Object> objects;
+
+  // objects.push_back(Particle(50, 1, physics::State(100, 450, 0, 50, 0 ,0), sf::Color::Red));
+  // objects.push_back(Particle(25, 1, physics::State(900, 410, 0, -50, 0 ,0), sf::Color::Green));
+
+  // particles.emplace_back(50, 1, physics::State(100, 450, 0, 50, 0 ,0), sf::Color::Red);
+  // particles.emplace_back(25, 1, physics::State(900, 410, 0, -50, 0 ,0), sf::Color::Green);
 
   // particles.push_back(p1);
   // particles.push_back(p2);
 
+  auto physics_manager = physics::PhysicsManager(TIMESTEP, objects);
+
   // create a clock to track the elapsed time
   sf::Clock clock;
+
+  // size_t count = 0;
 
   // run the main loop
   while (window.isOpen())
@@ -58,27 +66,18 @@ int main()
 
     window.clear();
 
-    for (size_t i = 0; i < particles.size(); i++)
+    for (size_t i = 0; i < objects.size(); i++)
     {
-      auto& particle = particles.at(i);
-      // Apply forces
-      // physics::applyGravity(particle.getDynamics().getStateObject());
 
-      // Update object
-      physics::updateParticle(particle, TIMESTEP);
-
-      // Resolve collisions with other particles
-      for (size_t j = i + 1; j < particles.size(); j++)
+      if ( Particle* particle = std::get_if<Particle>(&objects.at(i)))
       {
-        physics::collisionCheckOtherParticles(particle, particles.at(j));
+
+        physics_manager.step(i);
+
+        particle->getGraphics().setDrawPosition(particle->getDynamics().getState(), WINDOW_HEIGHT);
+        window.draw(particle->getGraphics().getShape());        
+
       }
-
-      // Resolve collisions with wall
-      physics::collisionCheckWall(particle, WINDOW_HEIGHT, WINDOW_WIDTH);
-      particle.getDynamics().getStateObject().clearForces();
-
-      particle.getGraphics().setDrawPosition(particle.getDynamics().getStateObject(), WINDOW_HEIGHT);
-      window.draw(particle.getGraphics().getShape());
     }
 
     window.display();
@@ -91,6 +90,7 @@ int main()
     // Output the duration
     std::cout << "Loop time: " << duration.count() << " microseconds" << std::endl;
 
+    // count++;
 
   }
 
