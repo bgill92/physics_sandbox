@@ -1,6 +1,6 @@
 #pragma once
 
-#include <concepts>
+#include <variant>
 
 #include <Eigen/Dense>
 #include <SFML/Graphics.hpp>
@@ -13,10 +13,28 @@
 namespace physics
 {
 
+struct PendulumConstraint
+{
+
+  PendulumConstraint() = delete;
+
+  PendulumConstraint(const physics::State& center_of_contraint, const double length) : center_of_constraint_{center_of_constraint}, length_{length} {}
+
+  physics::State getCenterOfConstraint() {return center_of_constraint_;}
+
+  double getLength() {return length_;}
+
+private: 
+  physics::State center_of_constraint_;
+  double length_;
+}
+
+using Constraint = std::variant<PendulumConstraint>;
+
 struct PhysicsManager
 {
 
-  PhysicsManager(const double timestep, std::vector<Object>& objects) : timestep_{timestep}, objects_(objects) {}
+  PhysicsManager(const Config& config, std::vector<Object>& objects) : config_{config}, objects_(objects) {}
 
   void updateObject(const size_t idx);
 
@@ -24,15 +42,18 @@ struct PhysicsManager
 
   void clearForces(const size_t idx);
 
-  void collisionCheckWall(const size_t idx, const double WINDOW_HEIGHT, const double WINDOW_WIDTH);
+  void evaluateConstraint(const size_t idx, const physics::State& previous_state);
+
+  void collisionCheckWall(const size_t idx);
 
   void collisionCheck(Particle& particle_1, Particle& particle_2);
 
   void step(const size_t idx);
 
 private:
-  double timestep_;
+  Config config_;
   std::vector<Object>& objects_;
+  std::vector<Constraint>& constraints_;
 };
 
 

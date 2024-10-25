@@ -1,52 +1,37 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <fstream>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "common.hpp"
-#include "integrator.hpp"
 #include "physics.hpp"
 #include "particle.hpp"
+#include "utils.hpp"
 
 #include <SFML/Graphics.hpp>
 
-namespace
-{
-const unsigned int WINDOW_WIDTH = 1000;
-const unsigned int WINDOW_HEIGHT = 1000;
-const double TIMESTEP = 0.01;
-}  // namespace
-
 int main()
 {
+  // Parse the config file
+  const std::string config_file_path = "/home/bilal/physics_sandbox/config/config.json";
+
+  std::ifstream config_file{config_file_path};
+
+  const auto config = utils::parse(utils::json::parse(config_file));
+
   // create the window
-  sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Simulator");
+  sf::RenderWindow window(sf::VideoMode(config.window_width, config.window_height), "Simulator");
   window.setFramerateLimit(60);
 
-  auto objects = generateParticles(100, WINDOW_HEIGHT, WINDOW_WIDTH);
+  auto objects = generateParticles(config);
 
-
-  // Particle p1 {50, 1, {100, 450, 0, 50, 0 ,0}, sf::Color::Red};
-  // Particle p2 {25, 1, {900, 410, 0, -50, 0 ,0}, sf::Color::Green};
-
-  // std::vector<Object> objects;
-
-  // objects.push_back(Particle(50, 1, physics::State(100, 450, 0, 50, 0 ,0), sf::Color::Red));
-  // objects.push_back(Particle(25, 1, physics::State(900, 410, 0, -50, 0 ,0), sf::Color::Green));
-
-  // particles.emplace_back(50, 1, physics::State(100, 450, 0, 50, 0 ,0), sf::Color::Red);
-  // particles.emplace_back(25, 1, physics::State(900, 410, 0, -50, 0 ,0), sf::Color::Green);
-
-  // particles.push_back(p1);
-  // particles.push_back(p2);
-
-  auto physics_manager = physics::PhysicsManager(TIMESTEP, objects);
+  auto physics_manager = physics::PhysicsManager(config, objects);
 
   // create a clock to track the elapsed time
   sf::Clock clock;
-
-  // size_t count = 0;
 
   // run the main loop
   while (window.isOpen())
@@ -74,7 +59,7 @@ int main()
 
         physics_manager.step(i);
 
-        particle->getGraphics().setDrawPosition(particle->getDynamics().getState(), WINDOW_HEIGHT);
+        particle->getGraphics().setDrawPosition(particle->getDynamics().getState(), config.window_height);
         window.draw(particle->getGraphics().getShape());        
 
       }
@@ -89,8 +74,6 @@ int main()
 
     // Output the duration
     std::cout << "Loop time: " << duration.count() << " microseconds" << std::endl;
-
-    // count++;
 
   }
 

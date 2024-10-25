@@ -38,3 +38,13 @@ using AMatrix = Eigen::Matrix<double, STATE_SIZE, STATE_SIZE>;
 using BMatrix = Eigen::Matrix<double, STATE_SIZE, FORCE_SIZE>;
 
 }  // namespace physics
+
+struct Config
+{
+	unsigned int window_height = 1000;
+	unsigned int window_width = 1000;
+	double timestep_physics = 0.1;
+	int num_particles = 100;
+	double particle_COR = 1.0;
+	double pixels_to_meters_ratio = 100;
+};

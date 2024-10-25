@@ -8,13 +8,6 @@
 #include <iostream>
 #include <type_traits>
 
-namespace
-{
-const double COEFFICIENT_OF_RESTITUTION = 0.0;
-const unsigned int WINDOW_WIDTH = 1000;
-const unsigned int WINDOW_HEIGHT = 1000;
-};
-
 namespace physics
 {
 void PhysicsManager::updateObject(const size_t idx)
@@ -26,7 +19,7 @@ void PhysicsManager::updateObject(const size_t idx)
       return particle->getDynamics().stateDerivative(derivative_at_state, timestep);
     };
 
-    particle->getDynamics().getState() += integrator::RK4<physics::State>(particle->getDynamics().getState(), this->timestep_, derivative_func);
+    particle->getDynamics().getState() += integrator::RK4<physics::State>(particle->getDynamics().getState(), this->config_.timestep_physics, derivative_func);
   }  
 }
 
@@ -46,11 +39,11 @@ void PhysicsManager::clearForces(const size_t idx)
   }
 }
 
-void PhysicsManager::collisionCheckWall(const size_t idx, const double WINDOW_HEIGHT, const double WINDOW_WIDTH)
+void PhysicsManager::collisionCheckWall(const size_t idx)
 {
   if ( Particle* particle = std::get_if<Particle>(&objects_.at(idx)))
   {
-    particle->collisionCheckWall(WINDOW_HEIGHT, WINDOW_WIDTH, COEFFICIENT_OF_RESTITUTION);
+    particle->collisionCheckWall(config_.window_height, config_.window_width, config_.particle_COR);
   }
 }
 
@@ -59,9 +52,17 @@ void PhysicsManager::step(const size_t idx)
 
   applyGravity(idx);
 
+  auto physics::State previous_state;
+  if (objects_.at(idx).index() == 0)
+  {
+    previous_state = std::get<Particle>(objects_.at(idx)).getDynamics().getState()
+  }
+
   updateObject(idx);
 
-  // Resolve collisions with other particles
+  evaluateConstraint(idx, previous_state);
+
+  // Resolve collisions with other objects
   for (size_t j = idx + 1; j < objects_.size(); j++)
   {
     // Both are particles
@@ -71,7 +72,7 @@ void PhysicsManager::step(const size_t idx)
     }    
   }  
 
-  collisionCheckWall(idx, WINDOW_HEIGHT, WINDOW_WIDTH); 
+  collisionCheckWall(idx); 
 
   clearForces(idx);
 
@@ -123,9 +124,9 @@ void PhysicsManager::collisionCheck(Particle& particle_1, Particle& particle_2)
 
   // Calculate the new velocities
   const auto new_vel_axis_1 =
-      (m1 * vel_axis_1 + m2 * vel_axis_2 - m2 * (vel_axis_1 - vel_axis_2) * COEFFICIENT_OF_RESTITUTION) / (m1 + m2);
+      (m1 * vel_axis_1 + m2 * vel_axis_2 - m2 * (vel_axis_1 - vel_axis_2) * config_.particle_COR) / (m1 + m2);
   const auto new_vel_axis_2 =
-      (m1 * vel_axis_1 + m2 * vel_axis_2 - m1 * (vel_axis_2 - vel_axis_1) * COEFFICIENT_OF_RESTITUTION) / (m1 + m2);
+      (m1 * vel_axis_1 + m2 * vel_axis_2 - m1 * (vel_axis_2 - vel_axis_1) * config_.particle_COR) / (m1 + m2);
 
   // Set the new velocities
   State vel_adjustment_1{ 0, 0, 0, 0, 0, 0 };
@@ -136,4 +137,14 @@ void PhysicsManager::collisionCheck(Particle& particle_1, Particle& particle_2)
   vel_adjustment_2.tail<3>() = delta_pos * (new_vel_axis_2 - vel_axis_2);
   state_2 += vel_adjustment_2;
 }
+
+void PhysicsManager::evaluateConstraint(const size_t idx)
+{
+  if ( PendulumConstraint* constraint = std::get_if<PendulumConstraint>(&constraints_.at(idx)))
+  {
+
+    particle->getDynamics().getState() += integrator::RK4<physics::State>(particle->getDynamics().getState(), this->config_.timestep_physics, derivative_func);
+  } 
+}
+
 }  // namespace physics

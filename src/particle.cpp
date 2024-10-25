@@ -1,6 +1,7 @@
+#include "particle.hpp"
+
 #include <iostream>
 #include <random>
-#include "particle.hpp"
 
 void Particle::collisionCheckWall(const double WINDOW_HEIGHT, const double WINDOW_WIDTH, const double COEFFICIENT_OF_RESTITUTION)
 {
@@ -32,8 +33,7 @@ void Particle::collisionCheckWall(const double WINDOW_HEIGHT, const double WINDO
   }
 }
 
-std::vector<Object> generateParticles(const size_t num_particles, const unsigned int WINDOW_HEIGHT,
-                                                const unsigned int WINDOW_WIDTH)
+std::vector<Object> generateParticles(const Config& config)
 {
   std::vector<Object> particles;
 
@@ -47,12 +47,12 @@ std::vector<Object> generateParticles(const size_t num_particles, const unsigned
 
   std::uniform_int_distribution<> color(0, 255);
 
-  for (size_t i = 0; i < num_particles; i++)
+  for (size_t i = 0; i < config.num_particles; i++)
   {
     const auto radius_samp = radius(gen);
 
-    std::uniform_real_distribution<float> x_pos(radius_samp, static_cast<float>(WINDOW_WIDTH) - radius_samp);
-    std::uniform_real_distribution<float> y_pos(radius_samp, static_cast<float>(WINDOW_HEIGHT) - radius_samp);
+    std::uniform_real_distribution<float> x_pos(radius_samp, static_cast<float>(config.window_width) - radius_samp);
+    std::uniform_real_distribution<float> y_pos(radius_samp, static_cast<float>(config.window_height) - radius_samp);
 
     const auto x_vel_samp = x_vel(gen);
     const auto y_vel_samp = y_vel(gen);

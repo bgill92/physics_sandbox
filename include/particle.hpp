@@ -32,4 +32,4 @@ private:
   graphics::CircleGraphics graphics_;
 };
 
-std::vector<Object> generateParticles(const size_t num_particles, const unsigned int WINDOW_HEIGHT, const unsigned int WINDOW_WIDTH);
+std::vector<Object> generateParticles(const Config& config);
