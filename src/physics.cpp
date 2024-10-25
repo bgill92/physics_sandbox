@@ -52,15 +52,15 @@ void PhysicsManager::step(const size_t idx)
 
   applyGravity(idx);
 
-  auto physics::State previous_state;
-  if (objects_.at(idx).index() == 0)
-  {
-    previous_state = std::get<Particle>(objects_.at(idx)).getDynamics().getState()
-  }
+  // auto physics::State previous_state;
+  // if (objects_.at(idx).index() == 0)
+  // {
+  //   previous_state = std::get<Particle>(objects_.at(idx)).getDynamics().getState()
+  // }
 
   updateObject(idx);
 
-  evaluateConstraint(idx, previous_state);
+  // evaluateConstraint(idx, previous_state);
 
   // Resolve collisions with other objects
   for (size_t j = idx + 1; j < objects_.size(); j++)
@@ -138,13 +138,13 @@ void PhysicsManager::collisionCheck(Particle& particle_1, Particle& particle_2)
   state_2 += vel_adjustment_2;
 }
 
-void PhysicsManager::evaluateConstraint(const size_t idx)
-{
-  if ( PendulumConstraint* constraint = std::get_if<PendulumConstraint>(&constraints_.at(idx)))
-  {
+// void PhysicsManager::evaluateConstraint(const size_t idx)
+// {
+//   if ( PendulumConstraint* constraint = std::get_if<PendulumConstraint>(&constraints_.at(idx)))
+//   {
 
-    particle->getDynamics().getState() += integrator::RK4<physics::State>(particle->getDynamics().getState(), this->config_.timestep_physics, derivative_func);
-  } 
-}
+//     particle->getDynamics().getState() += integrator::RK4<physics::State>(particle->getDynamics().getState(), this->config_.timestep_physics, derivative_func);
+//   } 
+// }
 
 }  // namespace physics

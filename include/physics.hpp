@@ -18,7 +18,7 @@ struct PendulumConstraint
 
   PendulumConstraint() = delete;
 
-  PendulumConstraint(const physics::State& center_of_contraint, const double length) : center_of_constraint_{center_of_constraint}, length_{length} {}
+  PendulumConstraint(const physics::State& center_of_constraint, const double length) : center_of_constraint_{center_of_constraint}, length_{length} {}
 
   physics::State getCenterOfConstraint() {return center_of_constraint_;}
 
@@ -27,7 +27,7 @@ struct PendulumConstraint
 private: 
   physics::State center_of_constraint_;
   double length_;
-}
+};
 
 using Constraint = std::variant<PendulumConstraint>;
 
@@ -53,7 +53,7 @@ struct PhysicsManager
 private:
   Config config_;
   std::vector<Object>& objects_;
-  std::vector<Constraint>& constraints_;
+  // std::vector<Constraint>& constraints_;
 };
 
 
