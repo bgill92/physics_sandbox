@@ -1,51 +1,60 @@
 #pragma once
 
-#include <Eigen/Dense>
+#include <variant>
 
-class Object;
-class Particle;
-class DrawableParticle;
+#include <Eigen/Dense>
+#include <SFML/Graphics.hpp>
+
+#include "common.hpp"
+#include "particle.hpp"
+#include "object.hpp"
+
 
 namespace physics
 {
 
-constexpr size_t STATE_VECTOR_SIZE{ 6 };
+struct PendulumConstraint
+{
 
-constexpr size_t STATE_VECTOR_X_POS_IDX = 0;  // x position
-constexpr size_t STATE_VECTOR_Y_POS_IDX = 1;  // y position
-constexpr size_t STATE_VECTOR_Z_POS_IDX = 2;  // z position
+  PendulumConstraint() = delete;
 
-constexpr size_t STATE_VECTOR_X_LIN_VEL_IDX = 3;  // x linear velocity
-constexpr size_t STATE_VECTOR_Y_LIN_VEL_IDX = 4;  // y linear velocity
-constexpr size_t STATE_VECTOR_Z_LIN_VEL_IDX = 5;  // z linear velocity
+  PendulumConstraint(const physics::State& center_of_contraint, const double length) : center_of_constraint_{center_of_constraint}, length_{length} {}
 
-constexpr size_t COMMAND_VECTOR_SIZE{ 3 };
+  physics::State getCenterOfConstraint() {return center_of_constraint_;}
 
-constexpr size_t COMMAND_VECTOR_X_LIN_VEL_IDX = 0;  // x linear velocity
-constexpr size_t COMMAND_VECTOR_Y_LIN_VEL_IDX = 1;  // y linear velocity
-constexpr size_t COMMAND_VECTOR_Z_LIN_VEL_IDX = 2;  // z linear velocity
+  double getLength() {return length_;}
 
-constexpr size_t COMMAND_VECTOR_X_ACCEL_IDX = 3;  // x acceleration
-constexpr size_t COMMAND_VECTOR_Y_ACCEL_IDX = 4;  // y acceleration
-constexpr size_t COMMAND_VECTOR_Z_ACCEL_IDX = 5;  // z acceleration
+private: 
+  physics::State center_of_constraint_;
+  double length_;
+}
 
-// State is x, y, z, vx, vy, vz
-using stateVector = Eigen::Matrix<double, STATE_VECTOR_SIZE, 1>;
+using Constraint = std::variant<PendulumConstraint>;
 
-// State is vx, vy, vz, ax, ay, az
-using commandVector = Eigen::Matrix<double, COMMAND_VECTOR_SIZE, 1>;
+struct PhysicsManager
+{
 
-using AMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, STATE_VECTOR_SIZE>;
+  PhysicsManager(const Config& config, std::vector<Object>& objects) : config_{config}, objects_(objects) {}
 
-using BMatrix = Eigen::Matrix<double, STATE_VECTOR_SIZE, COMMAND_VECTOR_SIZE>;
+  void updateObject(const size_t idx);
 
-stateVector update(const AMatrix& A, const BMatrix& B, const stateVector& state, const commandVector& command,
-                   const double timestep);
+  void applyGravity(const size_t idx);
 
-void updateObject(Object& object, const double timestep);
+  void clearForces(const size_t idx);
 
-void collisionCheckWall(Particle& particle, const double WINDOW_HEIGHT, const double WINDOW_WIDTH);
+  void evaluateConstraint(const size_t idx, const physics::State& previous_state);
 
-void collisionCheckOtherParticles(DrawableParticle& drawable_particle_1, DrawableParticle& drawable_particle_2);
+  void collisionCheckWall(const size_t idx);
+
+  void collisionCheck(Particle& particle_1, Particle& particle_2);
+
+  void step(const size_t idx);
+
+private:
+  Config config_;
+  std::vector<Object>& objects_;
+  std::vector<Constraint>& constraints_;
+};
+
 
 };  // namespace physics

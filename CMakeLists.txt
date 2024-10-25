@@ -14,18 +14,18 @@ include(FetchContent)
 find_package(Eigen3 REQUIRED)
 find_package(SFML COMPONENTS graphics REQUIRED)
 
-#FetchContent_Declare(
-#  yaml-cpp
-#  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-#  GIT_TAG 84459a7f982ea4d10e943237b2e9c71afdab6a45)
-#
-#FetchContent_MakeAvailable(yaml-cpp)
+add_library(json INTERFACE)
+add_library(nlohmann::json ALIAS json)
+target_include_directories(json INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/nlohmann>)
+target_compile_features(json INTERFACE cxx_std_23)
 
 # Add the executable
-add_executable(physics_sandbox src/main.cpp src/object.cpp src/particle.cpp src/physics.cpp)
+add_executable(physics_sandbox src/dynamics.cpp src/graphics.cpp src/physics_sandbox.cpp src/particle.cpp src/physics.cpp)
 
 target_include_directories(physics_sandbox PRIVATE include)
-target_link_libraries(physics_sandbox sfml-graphics pthread Eigen3::Eigen)
+target_link_libraries(physics_sandbox PRIVATE sfml-graphics pthread Eigen3::Eigen nlohmann::json)
 
-#target_link_libraries(physics_sandbox sfml-graphics pthread Eigen3::Eigen yaml-cpp::yaml-cpp)
-#target_precompile_headers(physics_sandbox PRIVATE <rclcpp/rclcpp.hpp>)
+add_executable(constraints_example src/dynamics.cpp src/graphics.cpp src/constraints_example.cpp src/particle.cpp src/physics.cpp)
+
+target_include_directories(constraints_example PRIVATE include)
+target_link_libraries(constraints_example PRIVATE sfml-graphics pthread Eigen3::Eigen nlohmann::json)

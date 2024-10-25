@@ -4,10 +4,11 @@ This repo is intended to be a physics sandbox engine.
 
 ## TODO
 
- -[ ] Simulate multiple particle collisions
+ -[x] Simulate multiple particle collisions
  -[ ] Add constraints
  -[ ] Spawn objects and set parameters via YAML
  -[ ] Make the runge-kutta more generic
+ -[ ] Make Physics and windows managers
 
 ## Formatting
 
