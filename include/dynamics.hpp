@@ -32,7 +32,7 @@ struct PointMass final : public DynamicsBase
 {
   PointMass() = delete;
 
-  PointMass(const double mass) : mass_{ mass } { state_.setZero(); force_.setZero();};
+  explicit PointMass(const double mass) : mass_{ mass } { state_.setZero(); force_.setZero();};
 
   PointMass(const double mass, const physics::State& state)
     : mass_{ mass }, state_{ state } { force_.setZero(); };

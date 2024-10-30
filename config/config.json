@@ -1,8 +1,9 @@
 {
 	"window_width": 1000,
 	"window_height": 1000,
-	"timestep_physics": 0.05,
+	"timestep_physics": 0.01,
 	"num_particles" : 100,
 	"particle_COR": 0.9,
-	"pixels_to_meters_ratio": 100
+	"pixels_to_meters_ratio": 100,
+	"gravity_flag": true
 }

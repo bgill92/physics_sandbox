@@ -28,7 +28,15 @@ int main()
 
   auto objects = generateParticles(config);
 
-  auto physics_manager = physics::PhysicsManager(config, objects);
+  // Particle p {50, 1, {200, 500, 0, 0, -50 ,0}, sf::Color::Red};
+
+  // std::vector<Object> objects;
+
+  // objects.push_back(p);
+
+  std::vector<physics::Constraint> constraints;
+
+  auto physics_manager = physics::PhysicsManager(config, objects, constraints);
 
   // create a clock to track the elapsed time
   sf::Clock clock;

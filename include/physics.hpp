@@ -13,28 +13,28 @@
 namespace physics
 {
 
-struct PendulumConstraint
+struct CircleConstraint
 {
 
-  PendulumConstraint() = delete;
+  CircleConstraint() = delete;
 
-  PendulumConstraint(const physics::State& center_of_constraint, const double length) : center_of_constraint_{center_of_constraint}, length_{length} {}
+  CircleConstraint(const physics::State& center_of_constraint, const double radius) : center_of_constraint_{center_of_constraint}, radius_{radius} {}
 
   physics::State getCenterOfConstraint() {return center_of_constraint_;}
 
-  double getLength() {return length_;}
+  double getRadius() {return radius_;}
 
 private: 
   physics::State center_of_constraint_;
-  double length_;
+  double radius_;
 };
 
-using Constraint = std::variant<PendulumConstraint>;
+using Constraint = std::variant<CircleConstraint>;
 
 struct PhysicsManager
 {
 
-  PhysicsManager(const Config& config, std::vector<Object>& objects) : config_{config}, objects_(objects) {}
+  PhysicsManager(const Config& config, std::vector<Object>& objects, std::vector<Constraint>& constraints) : config_{config}, objects_{objects}, constraints_{constraints} {}
 
   void updateObject(const size_t idx);
 
@@ -42,7 +42,7 @@ struct PhysicsManager
 
   void clearForces(const size_t idx);
 
-  void evaluateConstraint(const size_t idx, const physics::State& previous_state);
+  void evaluateConstraint(const size_t idx);
 
   void collisionCheckWall(const size_t idx);
 
@@ -50,10 +50,14 @@ struct PhysicsManager
 
   void step(const size_t idx);
 
+  void updateVelocityAfterConstraint(const size_t idx, const physics::State& previous_state);
+
 private:
   Config config_;
   std::vector<Object>& objects_;
-  // std::vector<Constraint>& constraints_;
+  std::vector<Constraint>& constraints_;
+  double time_ {0};
+  double total_energy_ {0};
 };
 
 

@@ -8,6 +8,9 @@
 #include <iostream>
 #include <type_traits>
 
+#include <iostream>
+#include <iomanip>
+
 namespace physics
 {
 void PhysicsManager::updateObject(const size_t idx)
@@ -47,20 +50,38 @@ void PhysicsManager::collisionCheckWall(const size_t idx)
   }
 }
 
+void PhysicsManager::updateVelocityAfterConstraint(const size_t idx, const physics::State& previous_state)
+{
+  if (constraints_.empty())
+  {
+    return;
+  }  
+
+  auto& state = std::get<Particle>(objects_.at(idx)).getDynamics().getState();
+
+  Eigen::Vector3d diff_in_pos = (state.head<3>() - previous_state.head<3>());
+
+  state.tail<3>() = diff_in_pos/this->config_.timestep_physics;
+
+}
+
 void PhysicsManager::step(const size_t idx)
 {
 
-  applyGravity(idx);
+  if (config_.gravity_flag)
+  {
+    applyGravity(idx);
+  }
 
-  // auto physics::State previous_state;
-  // if (objects_.at(idx).index() == 0)
-  // {
-  //   previous_state = std::get<Particle>(objects_.at(idx)).getDynamics().getState()
-  // }
+  physics::State previous_state;
+  if (objects_.at(idx).index() == 0)
+  {
+    previous_state = std::get<Particle>(objects_.at(idx)).getDynamics().getState(); 
+  }
 
   updateObject(idx);
 
-  // evaluateConstraint(idx, previous_state);
+  evaluateConstraint(idx);
 
   // Resolve collisions with other objects
   for (size_t j = idx + 1; j < objects_.size(); j++)
@@ -75,6 +96,10 @@ void PhysicsManager::step(const size_t idx)
   collisionCheckWall(idx); 
 
   clearForces(idx);
+
+  updateVelocityAfterConstraint(idx, previous_state);
+
+  time_ += this->config_.timestep_physics;
 
 }
 
@@ -138,13 +163,32 @@ void PhysicsManager::collisionCheck(Particle& particle_1, Particle& particle_2)
   state_2 += vel_adjustment_2;
 }
 
-// void PhysicsManager::evaluateConstraint(const size_t idx)
-// {
-//   if ( PendulumConstraint* constraint = std::get_if<PendulumConstraint>(&constraints_.at(idx)))
-//   {
+void PhysicsManager::evaluateConstraint(const size_t idx)
+{
+  if (constraints_.empty())
+  {
+    return;
+  }
+  if ( CircleConstraint* constraint = std::get_if<CircleConstraint>(&constraints_.at(idx)))
+  {
+    if ( Particle* particle = std::get_if<Particle>(&objects_.at(idx)))
+    {
 
-//     particle->getDynamics().getState() += integrator::RK4<physics::State>(particle->getDynamics().getState(), this->config_.timestep_physics, derivative_func);
-//   } 
-// }
+      // Get the state
+      auto& state = particle->getDynamics().getState();
+
+      // Get the difference in position between the current state and the 
+      Eigen::Vector3d difference_pos = (state - constraint->getCenterOfConstraint()).head<3>();
+
+      // Normalize the distance to the center
+      difference_pos.normalize();
+
+      // 
+      state.head<3>() = (difference_pos*constraint->getRadius()) + constraint->getCenterOfConstraint().head<3>();
+
+    }    
+
+  } 
+}
 
 }  // namespace physics

@@ -16,7 +16,8 @@ namespace utils
 	                             .timestep_physics = config_in["timestep_physics"],
 	                             .num_particles = config_in["num_particles"],
 	                             .particle_COR = config_in["particle_COR"],
-	                             .pixels_to_meters_ratio = config_in["pixels_to_meters_ratio"]};
+	                             .pixels_to_meters_ratio = config_in["pixels_to_meters_ratio"],
+	                             .gravity_flag = config_in["gravity_flag"]};
 
 	  return config;
 }

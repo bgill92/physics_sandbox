@@ -27,22 +27,19 @@ int main()
   sf::RenderWindow window(sf::VideoMode(config.window_width, config.window_height), "Simulator");
   window.setFramerateLimit(60);
 
-  Particle p {50, 1, {100, 450, 0, 50, 0 ,0}, sf::Color::Red};
+  Particle p {50, 1, {200, 500, 0, 0, 0 ,0}, sf::Color::Red};
 
   std::vector<Object> objects;
 
   objects.push_back(p);
 
-  // objects.push_back(Particle(50, 1, physics::State(100, 450, 0, 50, 0 ,0), sf::Color::Red));
-  // objects.push_back(Particle(25, 1, physics::State(900, 410, 0, -50, 0 ,0), sf::Color::Green));
+  std::vector<physics::Constraint> constraints;
 
-  // particles.emplace_back(50, 1, physics::State(100, 450, 0, 50, 0 ,0), sf::Color::Red);
-  // particles.emplace_back(25, 1, physics::State(900, 410, 0, -50, 0 ,0), sf::Color::Green);
+  physics::CircleConstraint constraint {physics::State{500, 500, 0, 0, 0, 0}, 300};
 
-  // particles.push_back(p1);
-  // particles.push_back(p2);
+  constraints.push_back(constraint);
 
-  auto physics_manager = physics::PhysicsManager(config, objects);
+  auto physics_manager = physics::PhysicsManager(config, objects, constraints);
 
   // create a clock to track the elapsed time
   sf::Clock clock;
@@ -85,9 +82,6 @@ int main()
 
     // Calculate the duration in microseconds (or any other unit)
     const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-
-    // Output the duration
-    std::cout << "Loop time: " << duration.count() << " microseconds" << std::endl;
 
   }
 

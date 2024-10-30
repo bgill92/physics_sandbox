@@ -20,6 +20,7 @@ RUN apt-get update \
         git \
         libsfml-dev \
         libeigen3-dev \
+        libgtest-dev \
         python3-pip \
         sudo \
         vim \

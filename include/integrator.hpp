@@ -31,7 +31,9 @@ namespace integrator
 	  const T k3 = bound_derivative_func(k2 * timestep * 0.5);
 	  const T k4 = bound_derivative_func(k3 * timestep);
 
-	  return (1.0 / 6.0) * timestep * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
+	  const auto output = (1.0 / 6.0) * timestep * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
+
+	  return output;
 	}		
 
 };
