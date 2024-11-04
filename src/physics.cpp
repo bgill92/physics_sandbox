@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <iostream>
+#include <thread>
 #include <type_traits>
 
 #include <iostream>
@@ -158,6 +159,47 @@ void PhysicsManager::step(const size_t idx)
   std::visit(step_lambda, object);
 
   time_ += this->config_.timestep_physics;
+}
+
+void PhysicsManager::run(const std::atomic<bool>& sim_running)
+{
+  while (sim_running)
+  {
+    // std::cout << "In PhysicsManager::run\n";
+
+    // Calculate the cycle time based on physics timestep
+    const int target_cycle_time = static_cast<int>(1'000'000 * config_.timestep_physics);
+
+    // Get the start time of the loop
+    const auto start_time = std::chrono::high_resolution_clock::now();
+
+    {
+      // Get the mutex and lock
+      std::scoped_lock lock{ mtx_ };
+
+      // Simulate all the objects
+      for (size_t i = 0; i < objects_.size(); i++)
+      {
+        step(i);
+      }
+    }
+
+    // Get the end time
+    const auto end_time = std::chrono::high_resolution_clock::now();
+
+    // Calculate the sim duration in microseconds
+    const auto sim_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
+    if (sim_duration.count() > target_cycle_time)
+    {
+      std::cout << "The drawing time took greater than the target framerate\n";
+    }
+    else
+    {
+      // Sleep until the next time to simulate
+      std::this_thread::sleep_for(std::chrono::microseconds(target_cycle_time - sim_duration.count()));
+    }
+  }
 }
 
 }  // namespace physics

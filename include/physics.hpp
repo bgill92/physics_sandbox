@@ -1,6 +1,8 @@
 #pragma once
 
+#include <atomic>
 #include <concepts>
+#include <mutex>
 #include <variant>
 
 #include <Eigen/Dense>
@@ -203,21 +205,28 @@ void stepObject(const size_t idx, const Config& config, std::vector<Object>& obj
  */
 struct PhysicsManager
 {
-  PhysicsManager(const Config& config, std::vector<Object>& objects) : config_{ config }, objects_{ objects }
+  PhysicsManager(const Config& config, std::vector<Object>& objects, std::mutex& mtx)
+    : config_{ config }, objects_{ objects }, mtx_{ mtx }
   {
   }
 
+  /**
+   * @brief      Step an object through time
+   *
+   * @param[in]  idx   Which object to step
+   */
   void step(const size_t idx);
 
-  // void resetTotalEnergy() {total_energy_ = 0;}
-
-  // double getTotalEnergy() const {return total_energy_;}
+  /**
+   * @brief      Run the physics
+   */
+  void run(const std::atomic<bool>& sim_running);
 
 private:
   Config config_;
   std::vector<Object>& objects_;
+  std::mutex& mtx_;
   double time_{ 0 };
-  // double total_energy_ {0};
 };
 
 };  // namespace physics
