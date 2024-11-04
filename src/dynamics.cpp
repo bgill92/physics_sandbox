@@ -6,6 +6,6 @@ namespace dynamics
 {
 physics::State PointMass::stateDerivative(const physics::State& state, const double timestep) const
 {
-  return A*state + B*(this->force_/getMass());
+  return A * state + B * (this->force_ / getMass());
 }
 }  // namespace dynamics

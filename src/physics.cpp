@@ -1,8 +1,6 @@
 #include "dynamics.hpp"
 #include "particle.hpp"
 #include "physics.hpp"
-#include "object.hpp"
-#include "integrator.hpp"
 
 #include <functional>
 #include <iostream>
@@ -13,101 +11,47 @@
 
 namespace physics
 {
-void PhysicsManager::updateObject(const size_t idx)
-{
-  if ( Particle* particle = std::get_if<Particle>(&objects_.at(idx)))
-  {
-    const auto derivative_func = [&particle](const physics::State& derivative_at_state, const double timestep) -> physics::State
-    {
-      return particle->getDynamics().stateDerivative(derivative_at_state, timestep);
-    };
 
-    particle->getDynamics().getState() += integrator::RK4<physics::State>(particle->getDynamics().getState(), this->config_.timestep_physics, derivative_func);
-  }  
-}
-
-void PhysicsManager::applyGravity(const size_t idx)
+void collisionCheckBoundaries::operator()(Particle& particle)
 {
-  if ( Particle* particle = std::get_if<Particle>(&objects_.at(idx)))
+  auto& state = particle.getDynamics().getState();
+
+  // If a particle hits the bottom
+  if ((state(physics::STATE_Y_POS_IDX) - particle.getRadius()) < 0)
   {
-    particle->getDynamics().getForce() = physics::Force({0, -9.81 * particle->getDynamics().getMass(), 0});
+    state(physics::STATE_Y_POS_IDX) = particle.getRadius();
+    state(physics::STATE_Y_LIN_VEL_IDX) = -1 * state(physics::STATE_Y_LIN_VEL_IDX) * config_.particle_COR;
+  }
+  // If a particle hits the top
+  if ((state(physics::STATE_Y_POS_IDX) + particle.getRadius()) > config_.window_height / config_.pixels_to_meters_ratio)
+  {
+    state(physics::STATE_Y_POS_IDX) = config_.window_height / config_.pixels_to_meters_ratio - particle.getRadius();
+    state(physics::STATE_Y_LIN_VEL_IDX) = -1 * state(physics::STATE_Y_LIN_VEL_IDX) * config_.particle_COR;
+  }
+  // If a particle hits the right side
+  if ((particle.getRadius() + state(physics::STATE_X_POS_IDX)) > config_.window_width / config_.pixels_to_meters_ratio)
+  {
+    state(physics::STATE_X_POS_IDX) = config_.window_width / config_.pixels_to_meters_ratio - particle.getRadius();
+    state(physics::STATE_X_LIN_VEL_IDX) = -1 * state(physics::STATE_X_LIN_VEL_IDX) * config_.particle_COR;
+  }
+  // If the particle hits the left side
+  if (state(physics::STATE_X_POS_IDX) < particle.getRadius())
+  {
+    state(physics::STATE_X_POS_IDX) = particle.getRadius();
+    state(physics::STATE_X_LIN_VEL_IDX) = -1 * state(physics::STATE_X_LIN_VEL_IDX) * config_.particle_COR;
   }
 }
 
-void PhysicsManager::clearForces(const size_t idx)
+/**
+ * @brief      Template specilization of a Particle colliding with another particle
+ *
+ * @param      second_object  The second object, which is a particle
+ */
+template <>
+void collisionCheck<Particle>::operator()(Particle& second_object)
 {
-  if ( Particle* particle = std::get_if<Particle>(&objects_.at(idx)))
-  {
-    particle->getDynamics().clearForce();
-  }
-}
-
-void PhysicsManager::collisionCheckWall(const size_t idx)
-{
-  if ( Particle* particle = std::get_if<Particle>(&objects_.at(idx)))
-  {
-    particle->collisionCheckWall(config_.window_height, config_.window_width, config_.particle_COR);
-  }
-}
-
-void PhysicsManager::updateVelocityAfterConstraint(const size_t idx, const physics::State& previous_state)
-{
-  if (constraints_.empty())
-  {
-    return;
-  }  
-
-  auto& state = std::get<Particle>(objects_.at(idx)).getDynamics().getState();
-
-  Eigen::Vector3d diff_in_pos = (state.head<3>() - previous_state.head<3>());
-
-  state.tail<3>() = diff_in_pos/this->config_.timestep_physics;
-
-}
-
-void PhysicsManager::step(const size_t idx)
-{
-
-  if (config_.gravity_flag)
-  {
-    applyGravity(idx);
-  }
-
-  physics::State previous_state;
-  if (objects_.at(idx).index() == 0)
-  {
-    previous_state = std::get<Particle>(objects_.at(idx)).getDynamics().getState(); 
-  }
-
-  updateObject(idx);
-
-  evaluateConstraint(idx);
-
-  // Resolve collisions with other objects
-  for (size_t j = idx + 1; j < objects_.size(); j++)
-  {
-    // Both are particles
-    if ((objects_.at(idx).index() == 0) && (objects_.at(j).index() == 0))
-    {
-      collisionCheck(std::get<Particle>(objects_.at(idx)), std::get<Particle>(objects_.at(j)));
-    }    
-  }  
-
-  collisionCheckWall(idx); 
-
-  clearForces(idx);
-
-  updateVelocityAfterConstraint(idx, previous_state);
-
-  time_ += this->config_.timestep_physics;
-
-}
-
-void PhysicsManager::collisionCheck(Particle& particle_1, Particle& particle_2)
-{
-
-  auto& dynamics_1 = particle_1.getDynamics();
-  auto& dynamics_2 = particle_2.getDynamics();
+  auto& dynamics_1 = first_object_.getDynamics();
+  auto& dynamics_2 = second_object.getDynamics();
 
   auto& state_1 = dynamics_1.getState();
   auto& state_2 = dynamics_2.getState();
@@ -120,13 +64,13 @@ void PhysicsManager::collisionCheck(Particle& particle_1, Particle& particle_2)
   Eigen::Vector3d delta_pos = (pos_2 - pos_1);
 
   // If the distance between the particles is greater than the sum of the radius, then they are not in collision
-  if (delta_pos.norm() > (particle_1.getRadius() + particle_2.getRadius()))
+  if (delta_pos.norm() > (first_object_.getRadius() + second_object.getRadius()))
   {
     return;
   }
 
   // How much to push the particle along the collision axis
-  auto corr = (particle_1.getRadius() + particle_2.getRadius() - delta_pos.norm()) / 2.0;
+  auto corr = (first_object_.getRadius() + second_object.getRadius() - delta_pos.norm()) / 2.0;
   // Normalize the vector along the collision axis
   delta_pos.normalize();
 
@@ -163,32 +107,57 @@ void PhysicsManager::collisionCheck(Particle& particle_1, Particle& particle_2)
   state_2 += vel_adjustment_2;
 }
 
-void PhysicsManager::evaluateConstraint(const size_t idx)
+template <hasDynamics T>
+void stepObject(const size_t idx, const Config& config, std::vector<Object>& objects, T& object)
 {
-  if (constraints_.empty())
+  // Should gravity be applied to the object this timestep?
+  if (config.gravity_flag)
   {
-    return;
+    applyGravity<T>(object);
   }
-  if ( CircleConstraint* constraint = std::get_if<CircleConstraint>(&constraints_.at(idx)))
+
+  // Store the current state of the object for position based dynamics
+  const auto previous_state{ object.getDynamics().getState() };
+
+  // Update the state of the object
+  updateObject<T>(config.timestep_physics, object);
+
+  // Evaluate the constraint on the object (if there are any)
+  evaluateConstraint<T>(object);
+
+  // Create a collision checker used to resolve collisions with the object and other objects
+  collisionCheck collision_checker{ config, object };
+
+  // Resolve collisions with other objects
+  for (size_t j = idx + 1; j < objects.size(); j++)
   {
-    if ( Particle* particle = std::get_if<Particle>(&objects_.at(idx)))
-    {
+    std::visit(collision_checker, objects.at(j));
+  }
 
-      // Get the state
-      auto& state = particle->getDynamics().getState();
+  // Create a collision checker to resolve the collisions between the object and the boundaries
+  collisionCheckBoundaries boundary_collision_checker{ config };
 
-      // Get the difference in position between the current state and the 
-      Eigen::Vector3d difference_pos = (state - constraint->getCenterOfConstraint()).head<3>();
+  // Resolve any collisions between the object and the boundary
+  boundary_collision_checker(object);
 
-      // Normalize the distance to the center
-      difference_pos.normalize();
+  // Clear the forces on the object
+  clearForces<T>(object);
 
-      // 
-      state.head<3>() = (difference_pos*constraint->getRadius()) + constraint->getCenterOfConstraint().head<3>();
+  // Update the velocity of the object if it was constrained for particle based dynamics
+  updateVelocityAfterConstraint<T>(config.timestep_physics, object, previous_state);
+}
 
-    }    
+void PhysicsManager::step(const size_t idx)
+{
+  // A reference to the current object
+  auto& object = objects_.at(idx);
 
-  } 
+  // A lambda which is used to step the object once the proper type has been dispatched via std::visit (I think thats how it works?)
+  const auto step_lambda = [&](auto&& object) { stepObject<decltype(object)>(idx, config_, objects_, object); };
+
+  std::visit(step_lambda, object);
+
+  time_ += this->config_.timestep_physics;
 }
 
 }  // namespace physics

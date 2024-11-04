@@ -15,11 +15,11 @@
 
 int main()
 {
-	// Get config
+  // Get config
   // Parse the config file
   const std::string config_file_path = "/home/bilal/physics_sandbox/config/config.json";
 
-  std::ifstream config_file{config_file_path};
+  std::ifstream config_file{ config_file_path };
 
   const auto config = utils::parse(utils::json::parse(config_file));
 
@@ -27,19 +27,25 @@ int main()
   sf::RenderWindow window(sf::VideoMode(config.window_width, config.window_height), "Simulator");
   window.setFramerateLimit(60);
 
-  Particle p {50, 1, {200, 500, 0, 0, 0 ,0}, sf::Color::Red};
+  physics::CircleConstraint constraint{ physics::State{ 5, 5, 0, 0, 0, 0 }, 3 };
+
+  Particle p1{ 0.5, 1, { 2, 5, 0, 0, 0, 0 }, sf::Color::Red, constraint };
+
+  // Particle p2{ 50, 100, { 800, 200, 0, -100, 0, 0 }, sf::Color::Green };
 
   std::vector<Object> objects;
 
-  objects.push_back(p);
+  objects.push_back(p1);
 
-  std::vector<physics::Constraint> constraints;
+  // objects.push_back(p2);
 
-  physics::CircleConstraint constraint {physics::State{500, 500, 0, 0, 0, 0}, 300};
+  // std::vector<physics::Constraint> constraints;
 
-  constraints.push_back(constraint);
+  // constraints.push_back(constraint);
 
-  auto physics_manager = physics::PhysicsManager(config, objects, constraints);
+  auto physics_manager = physics::PhysicsManager(config, objects);
+
+  auto drawer_manager = graphics::DrawerManager(config, objects, window);
 
   // create a clock to track the elapsed time
   sf::Clock clock;
@@ -64,16 +70,9 @@ int main()
 
     for (size_t i = 0; i < objects.size(); i++)
     {
+      physics_manager.step(i);
 
-      if ( Particle* particle = std::get_if<Particle>(&objects.at(i)))
-      {
-
-        physics_manager.step(i);
-
-        particle->getGraphics().setDrawPosition(particle->getDynamics().getState(), config.window_height);
-        window.draw(particle->getGraphics().getShape());        
-
-      }
+      drawer_manager.drawObject(i);
     }
 
     window.display();
@@ -82,8 +81,7 @@ int main()
 
     // Calculate the duration in microseconds (or any other unit)
     const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-
   }
 
-	return 0; 
+  return 0;
 }
