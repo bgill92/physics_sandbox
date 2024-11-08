@@ -13,9 +13,8 @@ class Particle
 public:
   Particle() = delete;
 
-  Particle(const double radius, const double mass, const physics::State& state, const sf::Color& color,
-           std::optional<physics::Constraint> constraint = std::nullopt)
-    : radius_{ radius }, point_mass_{ mass, state }, graphics_{ radius, color }, constraint_{ constraint } {};
+  Particle(const double radius, const double mass, const physics::State& state, const sf::Color& color)
+    : radius_{ radius }, point_mass_{ mass, state }, graphics_{ radius, color } {};
 
   double getRadius()
   {
@@ -32,19 +31,10 @@ public:
     return graphics_;
   }
 
-  std::optional<physics::Constraint>& getConstraint()
-  {
-    return constraint_;
-  }
-
-  // void collisionCheckWall(const double WINDOW_HEIGHT, const double WINDOW_WIDTH, const double COEFFICIENT_OF_RESTITUTION);
-
 private:
   double radius_;
   dynamics::PointMass point_mass_;
   graphics::CircleGraphics graphics_;
-
-  std::optional<physics::Constraint> constraint_;
 };
 
 /**

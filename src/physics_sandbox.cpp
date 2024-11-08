@@ -24,11 +24,11 @@ int main()
 
   const auto config = utils::parse(utils::json::parse(config_file));
 
-  const auto object_generator_func = [](const Config& config) -> std::vector<Object> {
-    return generateParticles(config);
+  const auto object_and_constraint_generator_func = [](const Config& config) -> std::pair<std::vector<Object>, std::vector<constraints::Constraint>> {
+    return {generateParticles(config), {}};
   };
 
-  auto simulator = Simulator(config, object_generator_func);
+  auto simulator = Simulator(config, object_and_constraint_generator_func);
 
   simulator.run();
 
