@@ -109,7 +109,7 @@ void collisionCheck<Particle>::operator()(Particle& second_object)
 }
 
 template <hasDynamics T>
-void stepObject(const size_t idx, const Config& config, std::vector<Object>& objects, T& object)
+void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object)
 {
   // Should gravity be applied to the object this timestep?
   if (config.gravity_flag)
@@ -117,14 +117,48 @@ void stepObject(const size_t idx, const Config& config, std::vector<Object>& obj
     applyGravity<T>(object);
   }
 
-  // Store the current state of the object for position based dynamics
-  const auto previous_state{ object.getDynamics().getState() };
+  // Store the current state of the object got position based dynamics
+  constraints_manager.storePreviousState(idx, object.getDynamics().getState());
 
   // Update the state of the object
   updateObject<T>(config.timestep_physics, object);
 
-  // Evaluate the constraint on the object (if there are any)
-  evaluateConstraint<T>(object);
+//   // Create a collision checker used to resolve collisions with the object and other objects
+//   collisionCheck collision_checker{ config, object };
+
+//   // Resolve collisions with other objects
+//   for (size_t j = idx + 1; j < objects.size(); j++)
+//   {
+//     std::visit(collision_checker, objects.at(j));
+//   }
+
+//   // Create a collision checker to resolve the collisions between the object and the boundaries
+//   collisionCheckBoundaries boundary_collision_checker{ config };
+
+//   // Resolve any collisions between the object and the boundary
+//   boundary_collision_checker(object);
+
+//   // Clear the forces on the object
+//   clearForces<T>(object);
+}
+
+
+void PhysicsManager::step(const size_t idx)
+{
+  // A reference to the current object
+  auto& object = objects_.at(idx);
+
+  // A lambda which is used to step the object once the proper type has been dispatched via std::visit (I think thats how it works?)
+  const auto step_lambda = [&](auto&& object) { stepObject<decltype(object)>(idx, config_, constraints_manager_, object); };
+
+  std::visit(step_lambda, object);
+
+  time_ += this->config_.timestep_physics;
+}
+
+template<hasDynamics T>
+void collide(const size_t idx, const Config& config, T& object, std::vector<Object>& objects)
+{
 
   // Create a collision checker used to resolve collisions with the object and other objects
   collisionCheck collision_checker{ config, object };
@@ -140,32 +174,12 @@ void stepObject(const size_t idx, const Config& config, std::vector<Object>& obj
 
   // Resolve any collisions between the object and the boundary
   boundary_collision_checker(object);
-
-  // Clear the forces on the object
-  clearForces<T>(object);
-
-  // Update the velocity of the object if it was constrained for particle based dynamics
-  updateVelocityAfterConstraint<T>(config.timestep_physics, object, previous_state);
-}
-
-void PhysicsManager::step(const size_t idx)
-{
-  // A reference to the current object
-  auto& object = objects_.at(idx);
-
-  // A lambda which is used to step the object once the proper type has been dispatched via std::visit (I think thats how it works?)
-  const auto step_lambda = [&](auto&& object) { stepObject<decltype(object)>(idx, config_, objects_, object); };
-
-  std::visit(step_lambda, object);
-
-  time_ += this->config_.timestep_physics;
 }
 
 void PhysicsManager::run(const std::atomic<bool>& sim_running)
 {
   while (sim_running)
   {
-    // std::cout << "In PhysicsManager::run\n";
 
     // Calculate the cycle time based on physics timestep
     const int target_cycle_time = static_cast<int>(1'000'000 * config_.timestep_physics);
@@ -177,11 +191,44 @@ void PhysicsManager::run(const std::atomic<bool>& sim_running)
       // Get the mutex and lock
       std::scoped_lock lock{ mtx_ };
 
-      // Simulate all the objects
+      // Step all the objects forward in time
       for (size_t i = 0; i < objects_.size(); i++)
       {
+        // Apply forces
+        // Update Object
         step(i);
       }
+
+      // Evaluate constraints
+      constraints_manager_.evaluateConstraints();
+
+      // Evaluate collisions
+      for (size_t idx = 0; idx < objects_.size(); idx++)
+      {
+        auto& object = objects_.at(idx);
+
+        const auto evaluate_collisions = [&](auto&& object)
+        {
+          collide<decltype(object)>(idx, config_, object, objects_);
+        };
+
+        std::visit(evaluate_collisions, object);
+      }
+      
+      // Clear forces
+      const auto clear_forces_lambda = [&](auto&& object)
+      {
+        clearForces<decltype(object)>(object);
+      };
+
+      for (size_t i = 0; i < objects_.size(); i++)
+      {
+        std::visit(clear_forces_lambda, objects_.at(i));
+      }      
+
+      // Update velocity after constraints
+      constraints_manager_.updateVelocityAfterConstraint(config_.timestep_physics);
+
     }
 
     // Get the end time
@@ -192,7 +239,7 @@ void PhysicsManager::run(const std::atomic<bool>& sim_running)
 
     if (sim_duration.count() > target_cycle_time)
     {
-      std::cout << "The drawing time took greater than the target framerate\n";
+      std::cout << "The simulation time took greater than the target physics timestep\n";
     }
     else
     {

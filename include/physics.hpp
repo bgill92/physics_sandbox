@@ -17,26 +17,6 @@
 namespace physics
 {
 
-// This concept constrains the class to have a function getDynamics that returns a dynamics::DynamicsBase object
-template <typename T>
-concept hasDynamics = requires(T a)
-{
-  std::derived_from<decltype(a.getDynamics()), dynamics::DynamicsBase>;
-};
-
-// This concept constrains the class to have a function getConstraint that returns a reference to a std::optional<physics::Constraint>
-template <typename T>
-concept hasConstraint = requires(T a)
-{
-  {
-    a.getConstraint()
-    } -> std::same_as<std::optional<physics::Constraint>&>;
-};
-
-// This template constrains the class to satisfy both hasDynamics and hasConstraint
-template <typename T>
-concept hasDynamicsAndConstraint = hasDynamics<T> && hasConstraint<T>;
-
 /**
  * @brief      Applies gravity to the force vector of an object
  *
@@ -68,67 +48,6 @@ void updateObject(const double timestep, T& object)
 
   object.getDynamics().getState() +=
       integrator::RK4<physics::State>(object.getDynamics().getState(), timestep, derivative_func);
-}
-
-/**
- * @brief      Evaluates a constraint that an object might contain. Currently only evaluates a CircleConstraint
- *
- * @param      object  The object
- *
- * @tparam     T       A class which satisfies the hasDynamicsAndConstraint concept
- */
-template <hasDynamicsAndConstraint T>
-void evaluateConstraint(T& object)
-{
-  if (!object.getConstraint().has_value())
-  {
-    return;
-  }
-
-  if (CircleConstraint* constraint = std::get_if<CircleConstraint>(&object.getConstraint().value()))
-  {
-    // Get the state
-    physics::State& state = object.getDynamics().getState();
-
-    // Get the difference in position between the current state and the
-    Eigen::Vector3d difference_pos = (state - constraint->getCenterOfConstraint()).head<3>();
-
-    // Normalize the distance to the center
-    difference_pos.normalize();
-
-    //
-    state.head<3>() = (difference_pos * constraint->getRadius()) + constraint->getCenterOfConstraint().head<3>();
-  }
-  else
-  {
-    std::cout << "Non-supported constraint, exiting...";
-    exit(0);
-  }
-}
-
-/**
- * @brief      Performs a velocity correction to the object after a constraint has been satisfied. Necessary for
- * particle based dynamics.
- *
- * @param[in]  timestep        The timestep over which the object was subject to the constraint
- * @param      object          The object
- * @param[in]  previous_state  The previous state of the object
- *
- * @tparam     T               A class which satisfies the hasDynamicsAndConstraint concept
- */
-template <hasDynamicsAndConstraint T>
-void updateVelocityAfterConstraint(const double timestep, T& object, const physics::State& previous_state)
-{
-  if (!object.getConstraint().has_value())
-  {
-    return;
-  }
-
-  physics::State& state = object.getDynamics().getState();
-
-  Eigen::Vector3d diff_in_pos = (state.head<3>() - previous_state.head<3>());
-
-  state.tail<3>() = diff_in_pos / timestep;
 }
 
 /**
@@ -198,15 +117,15 @@ private:
  * @tparam     T        A class which satisfies the hasDynamics concept
  */
 template <hasDynamics T>
-void stepObject(const size_t idx, const Config& config, std::vector<Object>& objects, T& object);
+void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object);
 
 /**
  * @brief      The manager for performing the physics calculations
  */
 struct PhysicsManager
 {
-  PhysicsManager(const Config& config, std::vector<Object>& objects, std::mutex& mtx)
-    : config_{ config }, objects_{ objects }, mtx_{ mtx }
+  PhysicsManager(const Config& config, std::vector<Object>& objects, std::vector<constraints::Constraint>& constraints, std::mutex& mtx)
+    : config_{ config }, objects_{ objects }, constraints_manager_{objects_, constraints}, mtx_{ mtx }
   {
   }
 
@@ -225,6 +144,7 @@ struct PhysicsManager
 private:
   Config config_;
   std::vector<Object>& objects_;
+  constraints::ConstraintsManager constraints_manager_;
   std::mutex& mtx_;
   double time_{ 0 };
 };

@@ -112,3 +112,10 @@ private:
 };
 
 }  // namespace dynamics
+
+// This concept constrains the class to have a function getDynamics that returns a dynamics::DynamicsBase object
+template <typename T>
+concept hasDynamics = requires(T a)
+{
+  std::derived_from<decltype(a.getDynamics()), dynamics::DynamicsBase>;
+};

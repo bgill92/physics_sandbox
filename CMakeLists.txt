@@ -21,7 +21,7 @@ add_library(nlohmann::json ALIAS json)
 target_include_directories(json INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/nlohmann>)
 target_compile_features(json INTERFACE cxx_std_23)
 
-add_library(physics_engine src/dynamics.cpp src/graphics.cpp src/particle.cpp src/physics.cpp src/simulator.cpp)
+add_library(physics_engine src/constraints.cpp src/dynamics.cpp src/graphics.cpp src/particle.cpp src/physics.cpp src/simulator.cpp)
 target_include_directories(physics_engine PRIVATE include)
 target_link_libraries(physics_engine PRIVATE sfml-graphics pthread Eigen3::Eigen)
 
