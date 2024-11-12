@@ -38,7 +38,10 @@ struct CircleConstraint : public ConstraintsBase
     return radius_;
   }
 
-  size_t getObjectIdx() const override { return object_idx_;}
+  size_t getObjectIdx() const override
+  {
+    return object_idx_;
+  }
 
 private:
   size_t object_idx_;
@@ -46,18 +49,73 @@ private:
   double radius_;
 };
 
-using Constraint = std::variant<CircleConstraint>;
+/**
+ * @brief      Constrain two objects to be a certain distance apart
+ */
+struct DistanceConstraint : public ConstraintsBase
+{
+  DistanceConstraint() = delete;
+
+  DistanceConstraint(const size_t first_object_idx, const size_t second_object_idx, const double distance)
+    : first_object_idx_{ first_object_idx }, second_object_idx_{ second_object_idx }, distance_{ distance }
+  {
+  }
+
+  double getDistance() const
+  {
+    return distance_;
+  }
+
+  size_t getObjectIdx() const override
+  {
+    return first_object_idx_;
+  }
+
+  size_t getSecondObjectIdx() const
+  {
+    return second_object_idx_;
+  }
+
+private:
+  size_t first_object_idx_;
+  size_t second_object_idx_;
+  double distance_;
+};
+
+using Constraint = std::variant<CircleConstraint, DistanceConstraint>;
 
 struct Constrain
 {
   Constrain() = delete;
-  explicit Constrain(std::vector<Object>& objects, std::vector<std::reference_wrapper<physics::State>>& states) : objects_{ objects }, current_states_{ states } {}
+  Constrain(std::vector<Object>& objects, std::vector<std::reference_wrapper<physics::State>>& states)
+    : objects_{ objects }, current_states_{ states }
+  {
+  }
 
   void operator()(const CircleConstraint& constraint);
+
+  void operator()(const DistanceConstraint& constraint);
 
 private:
   std::vector<Object>& objects_;
   std::vector<std::reference_wrapper<physics::State>>& current_states_;
+};
+
+struct VelocityUpdater
+{
+  VelocityUpdater() = delete;
+  VelocityUpdater(std::vector<physics::State>& previous_states,
+                  std::vector<std::reference_wrapper<physics::State>>& current_states, const double timestep)
+    : previous_states_{ previous_states }, current_states_{ current_states }, timestep_{ timestep } {};
+
+  void operator()(const CircleConstraint& constraint);
+
+  void operator()(const DistanceConstraint& constraint);
+
+private:
+  std::vector<physics::State>& previous_states_;
+  std::vector<std::reference_wrapper<physics::State>>& current_states_;
+  double timestep_;
 };
 
 struct ConstraintsManager

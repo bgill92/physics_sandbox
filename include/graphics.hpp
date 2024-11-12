@@ -3,55 +3,10 @@
 #include <SFML/Graphics.hpp>
 
 #include "common.hpp"
-
-class Particle;
+#include "constraints.hpp"
 
 namespace graphics
 {
-
-/**
- * @brief      Contains the necessary information for drawing a circle using SFML
- */
-struct CircleGraphics
-{
-  CircleGraphics() = delete;
-  CircleGraphics(const double radius, const sf::Color& color = sf::Color::Red) : radius_{ radius }
-  {
-    circle_ = sf::CircleShape(radius);
-    circle_.setOrigin(radius, radius);
-    circle_.setFillColor(color);
-  }
-
-  sf::CircleShape& getShape()
-  {
-    return circle_;
-  };
-
-  /**
-   * @brief      Sets the draw position of the circle
-   *
-   * @param[in]  state          The state of the object
-   * @param[in]  WINDOW_HEIGHT  The window height
-   */
-  void setDrawPosition(const physics::State& state, const unsigned int WINDOW_HEIGHT)
-  {
-    circle_.setPosition(convertToDrawPosition(state, WINDOW_HEIGHT));
-  }
-
-private:
-  double radius_;
-  sf::CircleShape circle_;
-
-  /**
-   * @brief      Converts the y position from physics space to draw space
-   *
-   * @param[in]  state          The state
-   * @param[in]  WINDOW_HEIGHT  The window height
-   *
-   * @return     A SFML vector of x and y position that it uses for drawing
-   */
-  sf::Vector2f convertToDrawPosition(const physics::State& state, const unsigned int WINDOW_HEIGHT);
-};
 
 /**
  * @brief      A struct which is intended to draw an object using std::visit
@@ -75,14 +30,38 @@ private:
   sf::RenderWindow& window_;
 };
 
+struct DrawConstraint
+{
+  DrawConstraint() = delete;
+  DrawConstraint(const Config& config, sf::RenderWindow& window, std::vector<Object>& objects,
+                 std::vector<constraints::Constraint>& constraints)
+    : config_{ config }, window_{ window }, objects_{ objects }, constraints_{ constraints }
+  {
+  }
+
+  void operator()(constraints::CircleConstraint& constraint);
+
+  void operator()(constraints::DistanceConstraint& constraint);
+
+private:
+  const Config& config_;
+  sf::RenderWindow& window_;
+  std::vector<Object>& objects_;
+  std::vector<constraints::Constraint>& constraints_;
+};
+
 /**
  * @brief      The manager for drawing objects
  */
 struct DrawerManager
 {
   DrawerManager() = delete;
-  DrawerManager(const Config& config, std::vector<Object>& objects, sf::RenderWindow& window)
-    : objects_{ objects }, drawer_{ config, window }
+  DrawerManager(const Config& config, std::vector<Object>& objects, std::vector<constraints::Constraint>& constraints,
+                sf::RenderWindow& window)
+    : objects_{ objects }
+    , constraints_{ constraints }
+    , drawer_{ config, window }
+    , constraint_drawer_{ config, window, objects_, constraints_ }
   {
   }
 
@@ -93,9 +72,13 @@ struct DrawerManager
    */
   void drawObject(const size_t idx);
 
+  void drawConstraints();
+
 private:
   std::vector<Object>& objects_;
+  std::vector<constraints::Constraint>& constraints_;
   Draw drawer_;
+  DrawConstraint constraint_drawer_;
 };
 
 }  // namespace graphics

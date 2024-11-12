@@ -122,26 +122,7 @@ void stepObject(const size_t idx, const Config& config, constraints::Constraints
 
   // Update the state of the object
   updateObject<T>(config.timestep_physics, object);
-
-//   // Create a collision checker used to resolve collisions with the object and other objects
-//   collisionCheck collision_checker{ config, object };
-
-//   // Resolve collisions with other objects
-//   for (size_t j = idx + 1; j < objects.size(); j++)
-//   {
-//     std::visit(collision_checker, objects.at(j));
-//   }
-
-//   // Create a collision checker to resolve the collisions between the object and the boundaries
-//   collisionCheckBoundaries boundary_collision_checker{ config };
-
-//   // Resolve any collisions between the object and the boundary
-//   boundary_collision_checker(object);
-
-//   // Clear the forces on the object
-//   clearForces<T>(object);
 }
-
 
 void PhysicsManager::step(const size_t idx)
 {
@@ -149,17 +130,18 @@ void PhysicsManager::step(const size_t idx)
   auto& object = objects_.at(idx);
 
   // A lambda which is used to step the object once the proper type has been dispatched via std::visit (I think thats how it works?)
-  const auto step_lambda = [&](auto&& object) { stepObject<decltype(object)>(idx, config_, constraints_manager_, object); };
+  const auto step_lambda = [&](auto&& object) {
+    stepObject<decltype(object)>(idx, config_, constraints_manager_, object);
+  };
 
   std::visit(step_lambda, object);
 
   time_ += this->config_.timestep_physics;
 }
 
-template<hasDynamics T>
+template <hasDynamics T>
 void collide(const size_t idx, const Config& config, T& object, std::vector<Object>& objects)
 {
-
   // Create a collision checker used to resolve collisions with the object and other objects
   collisionCheck collision_checker{ config, object };
 
@@ -180,7 +162,6 @@ void PhysicsManager::run(const std::atomic<bool>& sim_running)
 {
   while (sim_running)
   {
-
     // Calculate the cycle time based on physics timestep
     const int target_cycle_time = static_cast<int>(1'000'000 * config_.timestep_physics);
 
@@ -202,33 +183,31 @@ void PhysicsManager::run(const std::atomic<bool>& sim_running)
       // Evaluate constraints
       constraints_manager_.evaluateConstraints();
 
-      // Evaluate collisions
-      for (size_t idx = 0; idx < objects_.size(); idx++)
+      if (config_.collision_check)
       {
-        auto& object = objects_.at(idx);
-
-        const auto evaluate_collisions = [&](auto&& object)
+        // Evaluate collisions
+        for (size_t idx = 0; idx < objects_.size(); idx++)
         {
-          collide<decltype(object)>(idx, config_, object, objects_);
-        };
+          auto& object = objects_.at(idx);
 
-        std::visit(evaluate_collisions, object);
+          const auto evaluate_collisions = [&](auto&& object) {
+            collide<decltype(object)>(idx, config_, object, objects_);
+          };
+
+          std::visit(evaluate_collisions, object);
+        }
       }
-      
+
       // Clear forces
-      const auto clear_forces_lambda = [&](auto&& object)
-      {
-        clearForces<decltype(object)>(object);
-      };
+      const auto clear_forces_lambda = [&](auto&& object) { clearForces<decltype(object)>(object); };
 
       for (size_t i = 0; i < objects_.size(); i++)
       {
         std::visit(clear_forces_lambda, objects_.at(i));
-      }      
+      }
 
       // Update velocity after constraints
       constraints_manager_.updateVelocityAfterConstraint(config_.timestep_physics);
-
     }
 
     // Get the end time
@@ -236,6 +215,8 @@ void PhysicsManager::run(const std::atomic<bool>& sim_running)
 
     // Calculate the sim duration in microseconds
     const auto sim_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
+    // std::cout << "sim duration time: " << sim_duration.count() << " microseconds\n";
 
     if (sim_duration.count() > target_cycle_time)
     {

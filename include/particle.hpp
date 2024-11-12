@@ -6,7 +6,7 @@
 #include "constraints.hpp"
 #include "common.hpp"
 #include "dynamics.hpp"
-#include "graphics.hpp"
+#include "circle_graphics.hpp"
 
 class Particle
 {

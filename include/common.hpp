@@ -48,5 +48,6 @@ struct Config
   int num_particles = 100;
   double particle_COR = 1.0;
   double pixels_to_meters_ratio = 100;
-  bool gravity_flag = 1;
+  bool gravity_flag = true;
+  bool collision_check = true;
 };

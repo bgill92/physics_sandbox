@@ -6,5 +6,6 @@
 	"num_particles" : 100,
 	"particle_COR": 1.0,
 	"pixels_to_meters_ratio": 100,
-	"gravity_flag": true
+	"gravity_flag": true,
+	"collision_check": false
 }

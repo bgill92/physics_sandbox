@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "common.hpp"
+#include "constraints.hpp"
 #include "physics.hpp"
 #include "particle.hpp"
 #include "simulator.hpp"
@@ -16,31 +17,38 @@
 
 int main()
 {
-  // // Get config
-  // // Parse the config file
-  // const std::string config_file_path = "/home/bilal/physics_sandbox/config/config.json";
+  // Get config
+  // Parse the config file
+  const std::string config_file_path = "/home/bilal/physics_sandbox/config/config.json";
 
-  // std::ifstream config_file{ config_file_path };
+  std::ifstream config_file{ config_file_path };
 
-  // const auto config = utils::parse(utils::json::parse(config_file));
+  const auto config = utils::parse(utils::json::parse(config_file));
 
-  // const auto object_generator_func = [](const Config& config) -> std::vector<Object> {
-  //   physics::CircleConstraint constraint{ physics::State{ 5, 5, 0, 0, 0, 0 }, 3 };
+  const auto object_and_constraint_generator_func =
+      [](const Config& config) -> std::pair<std::vector<Object>, std::vector<constraints::Constraint>> {
+    constraints::CircleConstraint constraint{ 0, physics::State{ 5, 5, 0, 0, 0, 0 }, 3 };
 
-  //   Particle p1{ 0.5, 1, { 2, 5, 0, 0, 0, 0 }, sf::Color::Red, constraint };
+    Particle p1{ 0.5, 1, { 2, 5, 0, 0, -1, 0 }, sf::Color::Red };
 
-  //   // Particle p2{ 50, 100, { 800, 200, 0, -100, 0, 0 }, sf::Color::Green };
+    std::vector<Object> objects;
 
-  //   std::vector<Object> objects;
+    std::vector<constraints::Constraint> constraints;
 
-  //   objects.push_back(p1);
+    objects.push_back(p1);
 
-  //   return objects;
-  // };
+    // Particle p2{ 0.5, 100, { 5, 2, 0, 0, 0, 0 }, sf::Color::Green };
 
-  // auto simulator = Simulator(config, object_generator_func);
+    // objects.push_back(p2);
 
-  // simulator.run();
+    constraints.push_back(constraint);
+
+    return { objects, constraints };
+  };
+
+  auto simulator = Simulator(config, object_and_constraint_generator_func);
+
+  simulator.run();
 
   return 0;
 }

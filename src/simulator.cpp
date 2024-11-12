@@ -37,6 +37,8 @@ void Simulator::run()
     {
       std::scoped_lock lock{ drawing_mtx_ };
 
+      drawer_manager_.drawConstraints();
+
       // Draw all the objects
       for (size_t i = 0; i < objects_.size(); i++)
       {

@@ -14,14 +14,16 @@
 struct Simulator
 {
   Simulator() = delete;
-  Simulator(const Config& config, const std::function<std::pair<std::vector<Object>, std::vector<constraints::Constraint>>(const Config&)> object_and_constraints_generator)
+  Simulator(const Config& config,
+            const std::function<std::pair<std::vector<Object>, std::vector<constraints::Constraint>>(const Config&)>
+                object_and_constraints_generator)
     : drawing_mtx_{}
     , config_{ config }
     , window_{ sf::VideoMode(config.window_width, config.window_height), "Simulator" }
     , objects_{ object_and_constraints_generator(config_).first }
     , constraints_{ object_and_constraints_generator(config_).second }
     , physics_manager_{ config_, objects_, constraints_, drawing_mtx_ }
-    , drawer_manager_{ config_, objects_, window_ }
+    , drawer_manager_{ config_, objects_, constraints_, window_ }
   {
   }
 

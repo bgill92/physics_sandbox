@@ -124,8 +124,9 @@ void stepObject(const size_t idx, const Config& config, constraints::Constraints
  */
 struct PhysicsManager
 {
-  PhysicsManager(const Config& config, std::vector<Object>& objects, std::vector<constraints::Constraint>& constraints, std::mutex& mtx)
-    : config_{ config }, objects_{ objects }, constraints_manager_{objects_, constraints}, mtx_{ mtx }
+  PhysicsManager(const Config& config, std::vector<Object>& objects, std::vector<constraints::Constraint>& constraints,
+                 std::mutex& mtx)
+    : config_{ config }, objects_{ objects }, constraints_manager_{ objects_, constraints }, mtx_{ mtx }
   {
   }
 
