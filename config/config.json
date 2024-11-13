@@ -7,5 +7,5 @@
 	"particle_COR": 1.0,
 	"pixels_to_meters_ratio": 100,
 	"gravity_flag": true,
-	"collision_check": false
+	"collision_check": true
 }

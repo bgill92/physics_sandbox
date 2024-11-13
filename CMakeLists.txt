@@ -25,26 +25,26 @@ add_library(physics_engine src/constraints.cpp src/dynamics.cpp src/graphics.cpp
 target_include_directories(physics_engine PRIVATE include)
 target_link_libraries(physics_engine PRIVATE sfml-graphics pthread Eigen3::Eigen)
 
-# Add the executable
+# Add the executables
 add_executable(physics_sandbox src/physics_sandbox.cpp)
-
 target_include_directories(physics_sandbox PRIVATE include)
 target_link_libraries(physics_sandbox PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
 
 add_executable(constraints_example src/constraints_example.cpp)
-
 target_include_directories(constraints_example PRIVATE include)
 target_link_libraries(constraints_example PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
 
 add_executable(double_pendulum src/double_pendulum.cpp)
-
 target_include_directories(double_pendulum PRIVATE include)
 target_link_libraries(double_pendulum PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
 
 add_executable(n_pendulum src/n_pendulum.cpp)
-
 target_include_directories(n_pendulum PRIVATE include)
 target_link_libraries(n_pendulum PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
+
+add_executable(linear_constraint_example src/linear_constraint_example.cpp)
+target_include_directories(linear_constraint_example PRIVATE include)
+target_link_libraries(linear_constraint_example PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
 
 find_package(GTest REQUIRED)
 include_directories(include ${GTEST_INCLUDE_DIRS})

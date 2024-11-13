@@ -82,7 +82,37 @@ private:
   double distance_;
 };
 
-using Constraint = std::variant<CircleConstraint, DistanceConstraint>;
+struct LinearConstraint : public ConstraintsBase
+{
+  LinearConstraint() = delete;
+
+  LinearConstraint(const size_t object_idx, const physics::State& start_point, const physics::State& end_point)
+    : object_idx_{ object_idx }, start_point_{ start_point }, end_point_{ end_point }
+  {
+  }
+
+  size_t getObjectIdx() const override
+  {
+    return object_idx_;
+  }
+
+  physics::State getStart() const
+  {
+    return start_point_;
+  }
+
+  physics::State getEnd() const
+  {
+    return end_point_;
+  }
+
+private:
+  size_t object_idx_;
+  physics::State start_point_;
+  physics::State end_point_;
+};
+
+using Constraint = std::variant<CircleConstraint, DistanceConstraint, LinearConstraint>;
 
 struct Constrain
 {
@@ -95,6 +125,8 @@ struct Constrain
   void operator()(const CircleConstraint& constraint);
 
   void operator()(const DistanceConstraint& constraint);
+
+  void operator()(const LinearConstraint& constraint);
 
 private:
   std::vector<Object>& objects_;
@@ -111,6 +143,8 @@ struct VelocityUpdater
   void operator()(const CircleConstraint& constraint);
 
   void operator()(const DistanceConstraint& constraint);
+
+  void operator()(const LinearConstraint& constraint);
 
 private:
   std::vector<physics::State>& previous_states_;

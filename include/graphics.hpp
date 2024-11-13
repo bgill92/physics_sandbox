@@ -43,6 +43,8 @@ struct DrawConstraint
 
   void operator()(constraints::DistanceConstraint& constraint);
 
+  void operator()(constraints::LinearConstraint& constraint);
+
 private:
   const Config& config_;
   sf::RenderWindow& window_;

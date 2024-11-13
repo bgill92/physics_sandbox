@@ -1,5 +1,6 @@
 #include "constraints.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 namespace constraints
@@ -61,6 +62,32 @@ void Constrain::operator()(const DistanceConstraint& constraint)
   state_2.head<2>() += -(inverse_mass_2 / (inverse_mass_total)) * (error * difference_pos);
 }
 
+void Constrain::operator()(const LinearConstraint& constraint)
+{
+  // Get the state
+  physics::State& state = current_states_.at(constraint.getObjectIdx()).get();
+
+  const auto start = constraint.getStart();
+  const auto end = constraint.getEnd();
+
+  // Calculate the difference in position of the constraint
+  const Eigen::Vector2d difference_pos = (end - start).head<2>();
+
+  // Calculate the vector from the beginning to the object
+  const Eigen::Vector2d start_to_point = (state - constraint.getStart()).head<2>();
+
+  const double top = start_to_point.dot(difference_pos);
+  const double bottom = difference_pos.squaredNorm();
+
+  // Get the ratio of the projection of the point vector to the constraint vector and clamp it to the endpoints
+  const double ratio = std::clamp(top / bottom, 0.0, 1.0);
+
+  const Eigen::Vector2d new_pos{ start(0) + difference_pos(0) * ratio, start(1) + difference_pos(1) * ratio };
+
+  // Constrain the position of the object to the closest to the line
+  state.head<2>() = new_pos;
+}
+
 template <hasDynamics T>
 physics::State& getState(T& object)
 {
@@ -96,7 +123,22 @@ void ConstraintsManager::evaluateConstraints()
   }
 }
 
+// TODO: Make the VelocityUpdater a templated function, and make the DistanceConstraint a template specialization
 void VelocityUpdater::operator()(const CircleConstraint& constraint)
+{
+  // Get the state of the object
+  physics::State& state = current_states_.at(constraint.getObjectIdx()).get();
+
+  physics::State& previous_state = previous_states_.at(constraint.getObjectIdx());
+
+  // Get the difference in position
+  Eigen::Vector3d diff_in_pos = (state.head<3>() - previous_state.head<3>());
+
+  // Set the velocity
+  state.tail<3>() = diff_in_pos / timestep_;
+}
+
+void VelocityUpdater::operator()(const LinearConstraint& constraint)
 {
   // Get the state of the object
   physics::State& state = current_states_.at(constraint.getObjectIdx()).get();

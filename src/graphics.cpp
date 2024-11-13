@@ -113,6 +113,44 @@ void DrawConstraint::operator()(constraints::DistanceConstraint& constraint)
   window_.draw(line);
 }
 
+void DrawConstraint::operator()(constraints::LinearConstraint& constraint)
+{
+  // Get the start and endpoints
+  const auto& end = constraint.getEnd();
+  const auto& start = constraint.getStart();
+
+  // Calculate the distance between the endpoints of the constraint
+  const auto distance = ((end - start).head<2>()).norm();
+
+  // Width of the rectangle
+  const float width = 0.1;
+
+  // Create the drawable rectangle
+  sf::RectangleShape line(sf::Vector2f(distance, width));
+
+  // Set the scaling
+  line.setScale(config_.pixels_to_meters_ratio, config_.pixels_to_meters_ratio);
+
+  // Set the origin of the rectangle to the middle of the leftmost side
+  line.setOrigin(0, width / 2);
+
+  // Calculate what the angle of the rectangle should be
+  const auto angle = std::atan2(end(physics::STATE_Y_POS_IDX) - start(physics::STATE_Y_POS_IDX),
+                                end(physics::STATE_X_POS_IDX) - start(physics::STATE_X_POS_IDX)) *
+                     (180 / std::numbers::pi);
+
+  // Rotate the rectangle that many degrees
+  line.rotate(-angle);
+
+  // Calculate the scaled window height
+  const auto scaled_window_height = config_.window_height / config_.pixels_to_meters_ratio;
+
+  line.setPosition(start(physics::STATE_X_POS_IDX) * config_.pixels_to_meters_ratio,
+                   (scaled_window_height - start(physics::STATE_Y_POS_IDX)) * config_.pixels_to_meters_ratio);
+
+  window_.draw(line);
+}
+
 void DrawerManager::drawConstraints()
 {
   for (auto& constraint : constraints_)
