@@ -1,4 +1,5 @@
 #include "particle.hpp"
+#include "rectangle.hpp"
 
 #include <iostream>
 #include <random>

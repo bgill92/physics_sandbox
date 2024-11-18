@@ -1,9 +1,5 @@
 #pragma once
 
-#include <memory>
-#include <optional>
-
-#include "constraints.hpp"
 #include "common.hpp"
 #include "dynamics.hpp"
 #include "circle_graphics.hpp"

@@ -1,12 +1,15 @@
+#include <chrono>
+#include <cmath>
 #include <iostream>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include "common.hpp"
 #include "constraints.hpp"
+#include "common.hpp"
 #include "physics.hpp"
-#include "particle.hpp"
+#include "rectangle.hpp"
 #include "simulator.hpp"
 #include "utils.hpp"
 
@@ -14,7 +17,6 @@
 
 int main()
 {
-  // Get config
   // Parse the config file
   const std::string config_file_path = "/home/bilal/physics_sandbox/config/config.json";
 
@@ -24,29 +26,19 @@ int main()
 
   const auto object_and_constraint_generator_func =
       [](const Config& config) -> std::pair<std::vector<Object>, std::vector<constraints::Constraint>> {
-    constraints::LinearConstraint constraint_1{ 0, physics::State{ 2, 5, 0, 0, 0, 0 },
-                                                physics::State{ 8, 5, 0, 0, 0, 0 } };
-
-    constraints::DistanceConstraint constraint_2{ 0, 1, 3 };
-
-    Particle p1{ 0.25, 1, { 5, 5, 0, 0, 0, 0 }, sf::Color::Red };
-
-    Particle p2{ 0.5, 10, { 2, 5, 0, 0, 0, 0 }, sf::Color::Red };
-
     std::vector<Object> objects;
 
-    std::vector<constraints::Constraint> constraints;
+    // const auto angle_rad = 30*deg2rad;
+    const auto angle_rad = 30 * deg2rad;
 
-    objects.push_back(p1);
+    std::cout << "angle_rad: " << angle_rad << "\n";
 
-    objects.push_back(p2);
+    // Rectangle rectangle {2, 0.2, 1, {5, 5, angle_rad, 0, 0, 0}, sf::Color::Red};
+    Rectangle rectangle{ 2, 1, 1, { 5, 5, angle_rad, 0, 0, 0 }, sf::Color::Red };
 
-    constraints.push_back(constraint_1);
+    objects.push_back(rectangle);
 
-    constraints.push_back(constraint_2);
-
-    return { objects, constraints };
-    // return { objects, {} };
+    return { objects, {} };
   };
 
   auto simulator = Simulator(config, object_and_constraint_generator_func);

@@ -6,7 +6,6 @@
 #include <iostream>
 #include <thread>
 #include <type_traits>
-
 #include <iostream>
 #include <iomanip>
 
@@ -43,6 +42,117 @@ void collisionCheckBoundaries::operator()(Particle& particle)
   }
 }
 
+void collisionCheckBoundaries::operator()(Rectangle& rectangle)
+{
+  // TODO: This is technically a collision constraint, so the constraints manager needs to take care of it?
+  // This happens last before the velocity correction anyway, so it's probably fine
+
+  auto& state = rectangle.getDynamics().getState();
+
+  // Get the vertices of the rectangle in global coordinates
+  const auto vertices = rectangle.calculateVerticesGlobal();
+
+  std::vector<std::pair<size_t, size_t>> vertex_past_bound;
+
+  // Simple check to see which vertex is past which boundary
+  for (size_t idx = 0; idx < vertices.size(); idx++)
+  {
+    const auto& vertex = vertices[idx];
+    // Check if the vertex is to the left of the left wall
+    if (vertex[0] < 0)
+    {
+      vertex_past_bound.push_back({ idx, 3 });
+    }
+    // Check if the vertex is to the right of the right wall
+    if (vertex[0] > x_bound_)
+    {
+      vertex_past_bound.push_back({ idx, 1 });
+    }
+    // Check if the vertex is below the bottom wall
+    if (vertex[1] < 0)
+    {
+      vertex_past_bound.push_back({ idx, 0 });
+    }
+    // Check if the vertex is above the top wall
+    if (vertex[1] > y_bound_)
+    {
+      vertex_past_bound.push_back({ idx, 2 });
+    }
+  }
+
+  for (size_t idx = 0; idx < vertex_past_bound.size(); idx++)
+  {
+    const auto vtx_idx = vertex_past_bound[idx].first;
+    const auto bnd_idx = vertex_past_bound[idx].second;
+
+    const auto& vertex = vertices[vtx_idx];
+    const auto& boundary = boundaries_[bnd_idx];
+
+    // Calculate the collision point
+    // TODO: This same functionality is in rectangle.cpp, extract it and generalize it
+    // Calculate the line vector
+    const Eigen::Vector2d difference_pos = boundary.second - boundary.first;
+
+    // Calculate the vector from the beginning of the line to the vertex
+    const Eigen::Vector2d start_to_point = vertex - boundary.first;
+
+    const double top = start_to_point.dot(difference_pos);
+    const double bottom = difference_pos.squaredNorm();
+
+    // Get the ratio of the projection of the point vector to the constraint vector and clamp it to the endpoints
+    const double ratio = std::clamp(top / bottom, 0.0, 1.0);
+
+    // This is the collision point
+    const Eigen::Vector2d collision_point{ boundary.first(0) + difference_pos(0) * ratio,
+                                           boundary.first(1) + difference_pos(1) * ratio };
+
+    // Calculate vector from center of rectangle to the collision point in the rectangle local frame
+    const Eigen::Rotation2Dd global_to_local(state(physics::STATE_THETA_IDX));
+    const Eigen::Vector2d center_to_coll_p = (global_to_local.inverse()) * (collision_point - state.head<2>());
+
+    // The normals for the walls have already been calculated
+
+    // Non-penetration constraint function
+    // Per ChatGPT: C(p,θ)=n⋅(p+R(θ)r−c_p) = 0
+    const auto normal = normals_[bnd_idx];
+    const auto C = normal.dot(vertex - collision_point);
+
+    // The current angle of the rectangle
+    const auto theta = state(physics::STATE_THETA_IDX);
+
+    // The derivative of the rotation matrix
+    const Eigen::Matrix<double, 2, 2> rot_D{ { -std::sin(theta), -std::cos(theta) },
+                                             { std::cos(theta), -std::sin(theta) } };
+
+    // Calculate the effective mass
+    const auto inverse_mass = 1 / rectangle.getDynamics().getMass();
+    const auto R_prime_r = rot_D * center_to_coll_p;
+    const auto dC_dTheta = normal.dot(R_prime_r);
+
+    const auto inverse_inertial_mass = (1 / rectangle.getInertia()) * (dC_dTheta * dC_dTheta);
+    const auto w = inverse_mass + inverse_inertial_mass;
+
+    // Calculate the lagrange multiplier
+    const auto lambda = -C / w;
+
+    // Apply the corrections
+    const Eigen::Vector2d delta_rect_p = lambda * inverse_mass * normal;
+    const auto delta_rect_theta = lambda * (1 / rectangle.getInertia()) * dC_dTheta;
+
+    state.head<2>() += delta_rect_p;
+    state(physics::STATE_THETA_IDX) += delta_rect_theta;
+
+    // Update the velocities
+    const auto previous_state = constraints_manager_.getPreviousStates().at(object_idx_);
+
+    // Get the difference in position
+    const Eigen::Vector3d diff_in_pos = (state.head<3>() - previous_state.head<3>());
+
+    // Set the velocity
+    state.tail<3>() = diff_in_pos / config_.timestep_physics;
+  }
+}
+
 /**
  * @brief      Template specilization of a Particle colliding with another particle
  *
@@ -58,8 +168,8 @@ void collisionCheck<Particle>::operator()(Particle& second_object)
   auto& state_2 = dynamics_2.getState();
 
   // Get the positions
-  Eigen::Vector3d pos_1 = state_1.segment<3>(0);
-  Eigen::Vector3d pos_2 = state_2.segment<3>(0);
+  const Eigen::Vector3d pos_1 = state_1.segment<3>(0);
+  const Eigen::Vector3d pos_2 = state_2.segment<3>(0);
 
   // Find the difference in position and normalize the difference
   Eigen::Vector3d delta_pos = (pos_2 - pos_1);
@@ -86,8 +196,8 @@ void collisionCheck<Particle>::operator()(Particle& second_object)
   state_2 += pos_adjustment_2;
 
   // Get the velocity along the collision axis
-  auto vel_axis_1 = (state_1.segment(3, 3)).dot(delta_pos);
-  auto vel_axis_2 = (state_2.segment(3, 3)).dot(delta_pos);
+  const auto vel_axis_1 = (state_1.segment(3, 3)).dot(delta_pos);
+  const auto vel_axis_2 = (state_2.segment(3, 3)).dot(delta_pos);
 
   const auto m1 = dynamics_1.getMass();
   const auto m2 = dynamics_2.getMass();
@@ -106,6 +216,24 @@ void collisionCheck<Particle>::operator()(Particle& second_object)
   State vel_adjustment_2{ 0, 0, 0, 0, 0, 0 };
   vel_adjustment_2.tail<3>() = delta_pos * (new_vel_axis_2 - vel_axis_2);
   state_2 += vel_adjustment_2;
+}
+
+template <>
+void collisionCheck<Particle>::operator()(Rectangle& second_object)
+{
+  std::cout << "collisionCheck<Particle>::operator()(Rectangle& second_object) is not implemented yet\n";
+}
+
+template <>
+void collisionCheck<Rectangle>::operator()(Particle& second_object)
+{
+  std::cout << "collisionCheck<Rectangle>::operator()(Particle& second_object) is not implemented yet\n";
+}
+
+template <>
+void collisionCheck<Rectangle>::operator()(Rectangle& second_object)
+{
+  std::cout << "collisionCheck<Rectangle>::operator()(Rectangle& second_object) is not implemented yet\n";
 }
 
 template <hasDynamics T>
@@ -140,7 +268,8 @@ void PhysicsManager::step(const size_t idx)
 }
 
 template <hasDynamics T>
-void collide(const size_t idx, const Config& config, T& object, std::vector<Object>& objects)
+void collide(const size_t idx, const Config& config, T& object, std::vector<Object>& objects,
+             constraints::ConstraintsManager& constraints_manager)
 {
   // Create a collision checker used to resolve collisions with the object and other objects
   collisionCheck collision_checker{ config, object };
@@ -152,7 +281,7 @@ void collide(const size_t idx, const Config& config, T& object, std::vector<Obje
   }
 
   // Create a collision checker to resolve the collisions between the object and the boundaries
-  collisionCheckBoundaries boundary_collision_checker{ config };
+  collisionCheckBoundaries boundary_collision_checker{ config, constraints_manager, idx };
 
   // Resolve any collisions between the object and the boundary
   boundary_collision_checker(object);
@@ -191,7 +320,7 @@ void PhysicsManager::run(const std::atomic<bool>& sim_running)
           auto& object = objects_.at(idx);
 
           const auto evaluate_collisions = [&](auto&& object) {
-            collide<decltype(object)>(idx, config_, object, objects_);
+            collide<decltype(object)>(idx, config_, object, objects_, constraints_manager_);
           };
 
           std::visit(evaluate_collisions, object);

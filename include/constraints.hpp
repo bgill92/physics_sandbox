@@ -4,6 +4,7 @@
 
 #include "common.hpp"
 #include "particle.hpp"
+#include "rectangle.hpp"
 #include "dynamics.hpp"
 
 namespace constraints
@@ -175,6 +176,11 @@ struct ConstraintsManager
    * @tparam     T               A class which satisfies the hasDynamicsAndConstraint concept
    */
   void updateVelocityAfterConstraint(const double timestep);
+
+  std::vector<physics::State>& getPreviousStates()
+  {
+    return previous_states_;
+  }
 
 private:
   std::vector<Object>& objects_;

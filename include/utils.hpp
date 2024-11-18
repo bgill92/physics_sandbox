@@ -25,8 +25,8 @@ Config parse(json const& config_in)
                               .num_particles = config_in["num_particles"],
                               .particle_COR = config_in["particle_COR"],
                               .pixels_to_meters_ratio = config_in["pixels_to_meters_ratio"],
-                              .gravity_flag = config_in["gravity_flag"], 
-                              .collision_check = config_in["collision_check"]};
+                              .gravity_flag = config_in["gravity_flag"],
+                              .collision_check = config_in["collision_check"] };
 
   return config;
 }

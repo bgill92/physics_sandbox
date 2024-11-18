@@ -25,6 +25,8 @@ struct Draw
    */
   void operator()(Particle& p);
 
+  void operator()(Rectangle& p);
+
 private:
   const Config& config_;
   sf::RenderWindow& window_;

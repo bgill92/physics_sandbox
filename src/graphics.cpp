@@ -15,11 +15,25 @@ void Draw::operator()(Particle& particle)
 
   // Get the state and multiply the position by the scale
   auto state = particle.getDynamics().getState();
-  state.head<3>() *= config_.pixels_to_meters_ratio;
+  state.head<2>() *= config_.pixels_to_meters_ratio;
 
   // Set the draw position
   particle.getGraphics().setDrawPosition(state, config_.window_height);
   window_.draw(particle.getGraphics().getShape());
+}
+
+void Draw::operator()(Rectangle& rectangle)
+{
+  // Set the scale based on the config
+  rectangle.getGraphics().getShape().setScale(config_.pixels_to_meters_ratio, config_.pixels_to_meters_ratio);
+
+  // Get the state and multiply the position by the scale
+  auto state = rectangle.getDynamics().getState();
+  state.head<2>() *= config_.pixels_to_meters_ratio;
+
+  // Set the draw position
+  rectangle.getGraphics().setDrawPosition(state, config_.window_height);
+  window_.draw(rectangle.getGraphics().getShape());
 }
 
 void DrawerManager::drawObject(const size_t idx)
@@ -56,7 +70,7 @@ void DrawConstraint::operator()(constraints::CircleConstraint& constraint)
   // Calculate what the angle of the rectangle should be
   const auto angle = std::atan2(state(physics::STATE_Y_POS_IDX) - center_of_constraint(physics::STATE_Y_POS_IDX),
                                 state(physics::STATE_X_POS_IDX) - center_of_constraint(physics::STATE_X_POS_IDX)) *
-                     (180 / std::numbers::pi);
+                     (rad2deg);
 
   // Rotate the rectangle that many degrees
   line.rotate(-angle);
@@ -99,7 +113,7 @@ void DrawConstraint::operator()(constraints::DistanceConstraint& constraint)
   // Calculate what the angle of the rectangle should be
   const auto angle = std::atan2(state_2(physics::STATE_Y_POS_IDX) - state_1(physics::STATE_Y_POS_IDX),
                                 state_2(physics::STATE_X_POS_IDX) - state_1(physics::STATE_X_POS_IDX)) *
-                     (180 / std::numbers::pi);
+                     (rad2deg);
 
   // Rotate the rectangle that many degrees
   line.rotate(-angle);
@@ -159,9 +173,4 @@ void DrawerManager::drawConstraints()
   }
 }
 
-sf::Vector2f CircleGraphics::convertToDrawPosition(const physics::State& state, const unsigned int WINDOW_HEIGHT)
-{
-  return { static_cast<float>(state(physics::STATE_X_POS_IDX)),
-           static_cast<float>(WINDOW_HEIGHT) - static_cast<float>(state(physics::STATE_Y_POS_IDX)) };
-}
 }  // namespace graphics

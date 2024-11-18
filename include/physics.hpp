@@ -1,11 +1,13 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <concepts>
 #include <mutex>
 #include <variant>
 
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <SFML/Graphics.hpp>
 
 #include "constraints.hpp"
@@ -13,6 +15,7 @@
 #include "dynamics.hpp"
 #include "integrator.hpp"
 #include "particle.hpp"
+#include "rectangle.hpp"
 
 namespace physics
 {
@@ -72,6 +75,8 @@ struct collisionCheck
    */
   void operator()(Particle& second_object);
 
+  void operator()(Rectangle& second_object);
+
 private:
   const Config& config_;
   T& first_object_;
@@ -96,14 +101,45 @@ void clearForces(T& object)
 struct collisionCheckBoundaries
 {
   collisionCheckBoundaries() = delete;
-  collisionCheckBoundaries(const Config& config) : config_{ config }
+  collisionCheckBoundaries(const Config& config, constraints::ConstraintsManager& constraints_manager,
+                           const size_t object_idx)
+    : config_{ config }, constraints_manager_{ constraints_manager }, object_idx_{ object_idx }
   {
+    // Make boundary lines going from bottom, right, top, left
+    boundaries_[0] = { { 0, 0 }, { static_cast<double>(config_.window_width) / config_.pixels_to_meters_ratio, 0 } };
+    boundaries_[1] = { { static_cast<double>(config_.window_width) / config_.pixels_to_meters_ratio, 0 },
+                       { static_cast<double>(config_.window_width) / config_.pixels_to_meters_ratio,
+                         static_cast<double>(config_.window_height) / config_.pixels_to_meters_ratio } };
+    boundaries_[2] = { { static_cast<double>(config_.window_width) / config_.pixels_to_meters_ratio,
+                         static_cast<double>(config_.window_height) / config_.pixels_to_meters_ratio },
+                       { 0, static_cast<double>(config_.window_height) / config_.pixels_to_meters_ratio } };
+    boundaries_[3] = { { 0, static_cast<double>(config_.window_height) / config_.pixels_to_meters_ratio }, { 0, 0 } };
+
+    x_bound_ = static_cast<double>(config_.window_width) / config_.pixels_to_meters_ratio;
+    y_bound_ = static_cast<double>(config_.window_height) / config_.pixels_to_meters_ratio;
+
+    // Make a 90 deg rotation matrix
+    const Eigen::Rotation2Dd rot(std::numbers::pi / 2);
+
+    // Calculate the normal vector at each boundary
+    normals_[0] = (rot * (boundaries_[0].second - boundaries_[0].first).normalized()).normalized();
+    normals_[1] = (rot * (boundaries_[1].second - boundaries_[1].first).normalized()).normalized();
+    normals_[2] = (rot * (boundaries_[2].second - boundaries_[2].first).normalized()).normalized();
+    normals_[3] = (rot * (boundaries_[3].second - boundaries_[3].first).normalized()).normalized();
   }
 
   void operator()(Particle& particle);
 
+  void operator()(Rectangle& rectangle);
+
 private:
   const Config& config_;
+  constraints::ConstraintsManager& constraints_manager_;
+  size_t object_idx_;
+  std::array<Line, 4> boundaries_;
+  std::array<Eigen::Vector2d, 4> normals_;
+  double x_bound_;
+  double y_bound_;
 };
 
 /**
