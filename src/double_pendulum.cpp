@@ -46,7 +46,8 @@ generateDoublePendulum(const physics::State& center, const double mass_1, const 
 
   constraints::CircleConstraint constraint_1{ 0, center, length_1 };
 
-  constraints::DistanceConstraint constraint_2{ 0, 1, length_2 };
+  constraints::DistanceConstraint constraint_2{ 0, Eigen::Vector2d().setZero(), 1, Eigen::Vector2d().setZero(),
+                                                length_2 };
 
   constraints.push_back(constraint_1);
 
@@ -72,14 +73,37 @@ int main()
     physics::State center{ 5, 5, 0, 0, 0, 0 };
     const auto mass_1 = 1.0;
     const auto mass_2 = 2.0;
-    const auto radius_1 = 0.25;
-    const auto radius_2 = 0.4;
-    const auto angle_1 = 150;
-    const auto angle_2 = 30;
+    const auto radius_1 = 0.5;
+    const auto radius_2 = 0.5;
+    const auto angle_1 = 90;
+    const auto angle_2 = 0;
     const auto length_1 = 1.0;
     const auto length_2 = 2.0;
 
-    return generateDoublePendulum(center, mass_1, mass_2, radius_1, radius_2, angle_1, angle_2, length_1, length_2);
+    // return generateDoublePendulum(center, mass_1, mass_2, radius_1, radius_2, angle_1, angle_2, length_1, length_2);
+
+    std::vector<Object> objects;
+    std::vector<constraints::Constraint> constraints;
+
+    Particle p1{ radius_1, mass_1, { 6, 5, 0, 0, 0, 0 }, sf::Color::Red };
+
+    Particle p2{ radius_2, mass_2, { 8.25, 5, 0, 0, 0, 0 }, sf::Color::Green };
+
+    objects.push_back(p1);
+
+    objects.push_back(p2);
+
+    constraints::CircleConstraint constraint_1{ 0, center, length_1 };
+
+    const Eigen::Vector2d v{ -0.25, 0 };
+
+    constraints::DistanceConstraint constraint_2{ 0, Eigen::Vector2d().setZero(), 1, v, length_2 };
+
+    constraints.push_back(constraint_1);
+
+    constraints.push_back(constraint_2);
+
+    return { objects, constraints };
   };
 
   auto simulator = Simulator(config, object_and_constraint_generator_func);

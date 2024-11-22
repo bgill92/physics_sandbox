@@ -74,7 +74,8 @@ generateNPendulum(const physics::State& center, const std::vector<double>& masse
     }
     else
     {
-      constraints::DistanceConstraint constraint{ idx - 1, idx, lengths.at(idx) };
+      constraints::DistanceConstraint constraint{ idx - 1, Eigen::Vector2d().setZero(), idx,
+                                                  Eigen::Vector2d().setZero(), lengths.at(idx) };
       constraints.push_back(constraint);
     }
   }

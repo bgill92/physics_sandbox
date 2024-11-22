@@ -4,6 +4,7 @@
 #include <atomic>
 #include <concepts>
 #include <mutex>
+#include <optional>
 #include <variant>
 
 #include <Eigen/Dense>
@@ -14,6 +15,7 @@
 #include "common.hpp"
 #include "dynamics.hpp"
 #include "integrator.hpp"
+#include "input.hpp"
 #include "particle.hpp"
 #include "rectangle.hpp"
 
@@ -30,7 +32,7 @@ namespace physics
 template <hasDynamics T>
 void applyGravity(T& object)
 {
-  object.getDynamics().getForce() = physics::Force({ 0, -9.81 * object.getDynamics().getMass(), 0 });
+  object.getDynamics().getForce() += physics::Force({ 0, -9.81 * object.getDynamics().getMass(), 0 });
 }
 
 /**
@@ -153,7 +155,9 @@ private:
  * @tparam     T        A class which satisfies the hasDynamics concept
  */
 template <hasDynamics T>
-void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object);
+void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object,
+                const std::optional<std::reference_wrapper<input::InputProcessor>>& input_processor_maybe,
+                std::mutex& input_mtx);
 
 /**
  * @brief      The manager for performing the physics calculations
@@ -161,8 +165,12 @@ void stepObject(const size_t idx, const Config& config, constraints::Constraints
 struct PhysicsManager
 {
   PhysicsManager(const Config& config, std::vector<Object>& objects, std::vector<constraints::Constraint>& constraints,
-                 std::mutex& mtx)
-    : config_{ config }, objects_{ objects }, constraints_manager_{ objects_, constraints }, mtx_{ mtx }
+                 std::mutex& drawing_mtx, std::mutex& input_mtx)
+    : config_{ config }
+    , objects_{ objects }
+    , constraints_manager_{ objects_, constraints }
+    , drawing_mtx_{ drawing_mtx }
+    , input_mtx_{ input_mtx }
   {
   }
 
@@ -178,11 +186,18 @@ struct PhysicsManager
    */
   void run(const std::atomic<bool>& sim_running);
 
+  void attachInputProcessor(input::InputProcessor& input_processor)
+  {
+    input_processor_ = std::ref(input_processor);
+  }
+
 private:
   Config config_;
   std::vector<Object>& objects_;
   constraints::ConstraintsManager constraints_manager_;
-  std::mutex& mtx_;
+  std::mutex& drawing_mtx_;
+  std::mutex& input_mtx_;
+  std::optional<std::reference_wrapper<input::InputProcessor>> input_processor_;
   double time_{ 0 };
 };
 

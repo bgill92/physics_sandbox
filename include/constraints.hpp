@@ -57,8 +57,14 @@ struct DistanceConstraint : public ConstraintsBase
 {
   DistanceConstraint() = delete;
 
-  DistanceConstraint(const size_t first_object_idx, const size_t second_object_idx, const double distance)
-    : first_object_idx_{ first_object_idx }, second_object_idx_{ second_object_idx }, distance_{ distance }
+  DistanceConstraint(const size_t first_object_idx, const Eigen::Vector2d& first_constraint_location_local,
+                     const size_t second_object_idx, const Eigen::Vector2d& second_constraint_location_local,
+                     const double distance)
+    : first_object_idx_{ first_object_idx }
+    , first_constraint_location_local_{ first_constraint_location_local }
+    , second_object_idx_{ second_object_idx }
+    , second_constraint_location_local_{ second_constraint_location_local }
+    , distance_{ distance }
   {
   }
 
@@ -77,9 +83,21 @@ struct DistanceConstraint : public ConstraintsBase
     return second_object_idx_;
   }
 
+  Eigen::Vector2d getFirstConstraintLocationLocal() const
+  {
+    return first_constraint_location_local_;
+  }
+
+  Eigen::Vector2d getSecondConstraintLocationLocal() const
+  {
+    return second_constraint_location_local_;
+  }
+
 private:
   size_t first_object_idx_;
+  Eigen::Vector2d first_constraint_location_local_;
   size_t second_object_idx_;
+  Eigen::Vector2d second_constraint_location_local_;
   double distance_;
 };
 
@@ -112,6 +130,33 @@ private:
   physics::State start_point_;
   physics::State end_point_;
 };
+
+// struct PinConstraint : public ConstraintsBase
+// {
+//   PinConstraint() = delete;
+
+//   PinConstraint(const size_t object_idx, const physics::State& center, const Eigen::Vector2d& constraint_location_local)
+//     : object_idx_{ object_idx }, center_{ center }, constraint_location_local_{ constraint_location_local }
+//   {
+//   }
+
+//   size_t getObjectIdx() const override
+//   {
+//     return object_idx_;
+//   }
+
+//   physics::State getCenter() const
+//   {
+//     return start_point_;
+//   }
+
+//   Eigen::Vector2d getConstraintLocationLocal() const {return constraint_location_local_;}
+
+// private:
+//   size_t object_idx_;
+//   physics::State center_;
+//   Eigen::Vector2d constraint_location_local_;
+// }
 
 using Constraint = std::variant<CircleConstraint, DistanceConstraint, LinearConstraint>;
 

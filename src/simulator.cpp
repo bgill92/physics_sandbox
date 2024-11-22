@@ -3,6 +3,8 @@
 #include <chrono>
 #include <thread>
 
+#include <SFML/Window/Keyboard.hpp>
+
 void Simulator::run()
 {
   // Calculate the cycle time based on framerate
@@ -28,6 +30,13 @@ void Simulator::run()
     {
       if (event.type == sf::Event::Closed)
         window_.close();
+    }
+
+    // Process the input
+    if (input_processor_)
+    {
+      std::scoped_lock lock{ input_mtx_ };
+      input_processor_.value().processInput();
     }
 
     // Clear the window

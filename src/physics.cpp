@@ -1,6 +1,7 @@
 #include "dynamics.hpp"
 #include "particle.hpp"
 #include "physics.hpp"
+#include "utils.hpp"
 
 #include <functional>
 #include <iostream>
@@ -89,22 +90,7 @@ void collisionCheckBoundaries::operator()(Rectangle& rectangle)
     const auto& boundary = boundaries_[bnd_idx];
 
     // Calculate the collision point
-    // TODO: This same functionality is in rectangle.cpp, extract it and generalize it
-    // Calculate the line vector
-    const Eigen::Vector2d difference_pos = boundary.second - boundary.first;
-
-    // Calculate the vector from the beginning of the line to the vertex
-    const Eigen::Vector2d start_to_point = vertex - boundary.first;
-
-    const double top = start_to_point.dot(difference_pos);
-    const double bottom = difference_pos.squaredNorm();
-
-    // Get the ratio of the projection of the point vector to the constraint vector and clamp it to the endpoints
-    const double ratio = std::clamp(top / bottom, 0.0, 1.0);
-
-    // This is the collision point
-    const Eigen::Vector2d collision_point{ boundary.first(0) + difference_pos(0) * ratio,
-                                           boundary.first(1) + difference_pos(1) * ratio };
+    const auto collision_point = utils::closestPointInLine(boundary.first, boundary.second, vertex);
 
     // Calculate vector from center of rectangle to the collision point in the rectangle local frame
     const Eigen::Rotation2Dd global_to_local(state(physics::STATE_THETA_IDX));
@@ -237,8 +223,22 @@ void collisionCheck<Rectangle>::operator()(Rectangle& second_object)
 }
 
 template <hasDynamics T>
-void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object)
+void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object,
+                const std::optional<std::reference_wrapper<input::InputProcessor>>& input_processor_maybe,
+                std::mutex& input_mtx)
 {
+  if (input_processor_maybe.has_value())
+  {
+    std::scoped_lock lock{ input_mtx };
+
+    auto& ip = input_processor_maybe.value().get();
+
+    if (idx == ip.getObjectIdx())
+    {
+      object.getDynamics().getForce() = ip.getObjectForce();
+    }
+  }
+
   // Should gravity be applied to the object this timestep?
   if (config.gravity_flag)
   {
@@ -259,7 +259,7 @@ void PhysicsManager::step(const size_t idx)
 
   // A lambda which is used to step the object once the proper type has been dispatched via std::visit (I think thats how it works?)
   const auto step_lambda = [&](auto&& object) {
-    stepObject<decltype(object)>(idx, config_, constraints_manager_, object);
+    stepObject<decltype(object)>(idx, config_, constraints_manager_, object, input_processor_, input_mtx_);
   };
 
   std::visit(step_lambda, object);
@@ -299,7 +299,7 @@ void PhysicsManager::run(const std::atomic<bool>& sim_running)
 
     {
       // Get the mutex and lock
-      std::scoped_lock lock{ mtx_ };
+      std::scoped_lock lock{ drawing_mtx_ };
 
       // Step all the objects forward in time
       for (size_t i = 0; i < objects_.size(); i++)
@@ -330,9 +330,13 @@ void PhysicsManager::run(const std::atomic<bool>& sim_running)
       // Clear forces
       const auto clear_forces_lambda = [&](auto&& object) { clearForces<decltype(object)>(object); };
 
-      for (size_t i = 0; i < objects_.size(); i++)
       {
-        std::visit(clear_forces_lambda, objects_.at(i));
+        std::scoped_lock lock{ input_mtx_ };
+
+        for (size_t i = 0; i < objects_.size(); i++)
+        {
+          std::visit(clear_forces_lambda, objects_.at(i));
+        }
       }
 
       // Update velocity after constraints

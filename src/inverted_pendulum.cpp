@@ -29,19 +29,23 @@ int main()
     constraints::LinearConstraint constraint_1{ 0, physics::State{ 2, 5, 0, 0, 0, 0 },
                                                 physics::State{ 8, 5, 0, 0, 0, 0 } };
 
-    constraints::DistanceConstraint constraint_2{ 0, Eigen::Vector2d().setZero(), 1, Eigen::Vector2d().setZero(), 3 };
+    const Eigen::Vector2d v1{ 0.0, 0 };
 
-    Particle p1{ 0.25, 1, { 5, 5, 0, 0, 0, 0 }, sf::Color::Red };
+    const Eigen::Vector2d v2{ -1.4, 0 };
 
-    Particle p2{ 0.5, 10, { 2, 5, 0, 0, 0, 0 }, sf::Color::Red };
+    constraints::DistanceConstraint constraint_2{ 0, v1, 1, v2, 0 };
+
+    Rectangle r1{ 0.5, 0.2, 1, { 5, 5, 0, 0, 0, 0 }, sf::Color::Red };
+
+    Rectangle r2{ 3, 0.1, 1, { 5, 6.4, 80 * deg2rad, 0, 0, 0 }, sf::Color::Green };
 
     std::vector<Object> objects;
 
     std::vector<constraints::Constraint> constraints;
 
-    objects.push_back(p1);
+    objects.push_back(r1);
 
-    objects.push_back(p2);
+    objects.push_back(r2);
 
     constraints.push_back(constraint_1);
 
@@ -51,7 +55,7 @@ int main()
     // return { objects, {} };
   };
 
-  auto simulator = Simulator(config, object_and_constraint_generator_func);
+  auto simulator = Simulator(config, object_and_constraint_generator_func, 0);
 
   simulator.run();
 

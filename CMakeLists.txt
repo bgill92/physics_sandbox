@@ -21,9 +21,9 @@ add_library(nlohmann::json ALIAS json)
 target_include_directories(json INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/nlohmann>)
 target_compile_features(json INTERFACE cxx_std_23)
 
-add_library(physics_engine src/common_graphics.cpp src/constraints.cpp src/dynamics.cpp src/graphics.cpp src/particle.cpp src/physics.cpp src/rectangle.cpp src/simulator.cpp)
+add_library(physics_engine src/common_graphics.cpp src/constraints.cpp src/dynamics.cpp src/graphics.cpp src/input.cpp src/particle.cpp src/physics.cpp src/rectangle.cpp src/simulator.cpp src/utils.cpp)
 target_include_directories(physics_engine PRIVATE include)
-target_link_libraries(physics_engine PRIVATE sfml-graphics pthread Eigen3::Eigen)
+target_link_libraries(physics_engine PRIVATE sfml-graphics sfml-window pthread Eigen3::Eigen nlohmann::json)
 
 # Add the executables
 add_executable(physics_sandbox src/physics_sandbox.cpp)
@@ -49,6 +49,10 @@ target_link_libraries(linear_constraint_example PRIVATE physics_engine sfml-grap
 add_executable(rectangle_example src/rectangle_example.cpp)
 target_include_directories(rectangle_example PRIVATE include)
 target_link_libraries(rectangle_example PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
+
+add_executable(inverted_pendulum src/inverted_pendulum.cpp)
+target_include_directories(inverted_pendulum PRIVATE include)
+target_link_libraries(inverted_pendulum PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
 
 find_package(GTest REQUIRED)
 include_directories(include ${GTEST_INCLUDE_DIRS})

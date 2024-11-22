@@ -1,4 +1,5 @@
 #include "constraints.hpp"
+#include "utils.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -29,37 +30,78 @@ void Constrain::operator()(const DistanceConstraint& constraint)
   // Get the state of the second object
   physics::State& state_2 = current_states_.at(constraint.getSecondObjectIdx()).get();
 
-  // Get the difference in position between the two states
-  Eigen::Vector2d difference_pos = (state_2 - state_1).head<2>();
+  // Calculate the vectors from the center of the Object to the constraint location in the local frame
+  const auto theta_1 = state_1(physics::STATE_THETA_IDX);
+  const Eigen::Rotation2Dd local_to_global_1(theta_1);
+  // const Eigen::Vector2d center_to_constraint_1 = (local_to_global_1.inverse()) *
+  // (constraint.getFirstConstraintLocationLocal() - state_1.head<2>());
 
-  // Calculate the distance between the two objects
-  const auto distance = difference_pos.norm();
+  const Eigen::Vector2d center_to_constraint_1 = constraint.getFirstConstraintLocationLocal();
 
-  // The error between the current distance and the constraint distance
-  const auto error = distance - constraint.getDistance();
+  const auto theta_2 = state_2(physics::STATE_THETA_IDX);
+  const Eigen::Rotation2Dd local_to_global_2(theta_2);
+  // const Eigen::Vector2d center_to_constraint_2 = (local_to_global_2.inverse()) *
+  // (constraint.getSecondConstraintLocationLocal() - state_2.head<2>());
 
-  // Normalize the difference vector
-  difference_pos.normalize();
+  const Eigen::Vector2d center_to_constraint_2 = constraint.getSecondConstraintLocationLocal();
 
+  // Get the constraints attachment points in the global frame
+  const Eigen::Vector2d con_att_pnt_1 = state_1.head<2>() + local_to_global_1 * center_to_constraint_1;
+  const Eigen::Vector2d con_att_pnt_2 = state_2.head<2>() + local_to_global_2 * center_to_constraint_2;
+
+  // Calculate the normal vector
+  const Eigen::Vector2d normal = (con_att_pnt_2 - con_att_pnt_1).normalized();
+
+  // The Constraint equation
+  const auto C = (con_att_pnt_2 - con_att_pnt_1).norm() - constraint.getDistance();
+
+  // The derivative of the rotation matrices
+  const Eigen::Matrix<double, 2, 2> rot_D_1{ { -std::sin(theta_1), -std::cos(theta_1) },
+                                             { std::cos(theta_1), -std::sin(theta_1) } };
+
+  const Eigen::Matrix<double, 2, 2> rot_D_2{ { -std::sin(theta_2), -std::cos(theta_2) },
+                                             { std::cos(theta_2), -std::sin(theta_2) } };
+
+  // Get the masses and inertias
   const auto get_mass_lambda = [&](auto& object) -> double { return object.getDynamics().getMass(); };
-
-  // Get the mass of object 1
+  const auto get_inertia_lambda = [&](auto& object) -> double { return object.getInertia(); };
   const auto mass_1 = std::visit(get_mass_lambda, objects_.at(constraint.getObjectIdx()));
-
-  // Get the mass of object 2
   const auto mass_2 = std::visit(get_mass_lambda, objects_.at(constraint.getSecondObjectIdx()));
+  const auto inertia_1 = std::visit(get_inertia_lambda, objects_.at(constraint.getObjectIdx()));
+  const auto inertia_2 = std::visit(get_inertia_lambda, objects_.at(constraint.getSecondObjectIdx()));
 
-  const auto inverse_mass_1 = 1 / mass_1;
+  // Calculate the effective masses
+  const auto inverse_mass_1 = 1.0 / (mass_1);
+  const auto inverse_mass_2 = 1.0 / (mass_2);
 
-  const auto inverse_mass_2 = 1 / mass_2;
+  const auto R_prime_r_1 = rot_D_1 * center_to_constraint_1;
+  const auto dC_dTheta_1 = normal.dot(R_prime_r_1);
 
-  const auto inverse_mass_total = inverse_mass_1 + inverse_mass_2;
+  const auto R_prime_r_2 = rot_D_2 * center_to_constraint_2;
+  const auto dC_dTheta_2 = (-normal).dot(R_prime_r_2);
 
-  // Set the position of the first object
-  state_1.head<2>() += (inverse_mass_1 / (inverse_mass_total)) * (error * difference_pos);
+  const auto inverse_inertial_mass_1 = (1.0 / inertia_1) * (dC_dTheta_1 * dC_dTheta_1);
+  const auto inverse_inertial_mass_2 = (1.0 / inertia_2) * (dC_dTheta_2 * dC_dTheta_2);
 
-  // Set the position of the second object
-  state_2.head<2>() += -(inverse_mass_2 / (inverse_mass_total)) * (error * difference_pos);
+  const auto w = inverse_mass_1 + inverse_mass_2 + inverse_inertial_mass_1 + inverse_inertial_mass_2;
+
+  // Calculate the lagrange multiplier
+  const auto lambda = -C / w;
+
+  // Apply the corrections
+  // I had to switch the signs for this to work, why?
+  const Eigen::Vector2d delta_p_1 = -lambda * inverse_mass_1 * normal;
+  const Eigen::Vector2d delta_p_2 = lambda * inverse_mass_2 * normal;
+
+  const auto delta_theta_1 = lambda * (1 / inertia_1) * dC_dTheta_1;
+  const auto delta_theta_2 = lambda * (1 / inertia_2) * dC_dTheta_2;
+
+  state_1.head<2>() += delta_p_1;
+  state_1(physics::STATE_THETA_IDX) -= delta_theta_1;
+
+  // Had to subtract here too
+  state_2.head<2>() += delta_p_2;
+  state_2(physics::STATE_THETA_IDX) -= delta_theta_2;
 }
 
 void Constrain::operator()(const LinearConstraint& constraint)
@@ -70,19 +112,7 @@ void Constrain::operator()(const LinearConstraint& constraint)
   const auto start = constraint.getStart();
   const auto end = constraint.getEnd();
 
-  // Calculate the difference in position of the constraint
-  const Eigen::Vector2d difference_pos = (end - start).head<2>();
-
-  // Calculate the vector from the beginning to the object
-  const Eigen::Vector2d start_to_point = (state - constraint.getStart()).head<2>();
-
-  const double top = start_to_point.dot(difference_pos);
-  const double bottom = difference_pos.squaredNorm();
-
-  // Get the ratio of the projection of the point vector to the constraint vector and clamp it to the endpoints
-  const double ratio = std::clamp(top / bottom, 0.0, 1.0);
-
-  const Eigen::Vector2d new_pos{ start(0) + difference_pos(0) * ratio, start(1) + difference_pos(1) * ratio };
+  const auto new_pos = utils::closestPointInLine(start.head<2>(), end.head<2>(), state.head<2>());
 
   // Constrain the position of the object to the closest to the line
   state.head<2>() = new_pos;

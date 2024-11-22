@@ -5,6 +5,10 @@
 #include <iostream>
 #include <numbers>
 
+#include <cmath>
+
+#include <Eigen/Geometry>
+
 namespace graphics
 {
 
@@ -20,6 +24,19 @@ void Draw::operator()(Particle& particle)
   // Set the draw position
   particle.getGraphics().setDrawPosition(state, config_.window_height);
   window_.draw(particle.getGraphics().getShape());
+
+  // Draw a line to define orientation
+  const float start_x = state(physics::STATE_X_POS_IDX);
+  const float start_y = (static_cast<float>(config_.window_height) - state(physics::STATE_Y_POS_IDX));
+
+  const auto theta = state(physics::STATE_THETA_IDX);
+  const float delta_x = particle.getRadius() * std::cos(theta) * config_.pixels_to_meters_ratio;
+  const float delta_y = particle.getRadius() * std::sin(-theta) * config_.pixels_to_meters_ratio;
+
+  const sf::Vertex line[] = { sf::Vertex(sf::Vector2f(start_x, start_y)),
+                              sf::Vertex(sf::Vector2f(start_x + delta_x, start_y + delta_y)) };
+
+  window_.draw(line, 2, sf::Lines);
 }
 
 void Draw::operator()(Rectangle& rectangle)
@@ -95,8 +112,18 @@ void DrawConstraint::operator()(constraints::DistanceConstraint& constraint)
   // Get the state of the second object
   const auto& state_2 = std::visit(get_current_state_lambda, objects_.at(constraint.getSecondObjectIdx()));
 
-  // Calculate the distance between objects
-  const auto distance = ((state_2 - state_1).head<2>()).norm();
+  // Get the local location of the first constraint and convert it into a global position
+  const Eigen::Vector2d first_constraint_location_local = constraint.getFirstConstraintLocationLocal();
+  const Eigen::Vector2d first_constraint_location_global =
+      state_1.head<2>() + Eigen::Rotation2Dd(state_1(physics::STATE_THETA_IDX)) * first_constraint_location_local;
+
+  // Get the local location of the second constraint and convert it into a global position
+  const Eigen::Vector2d second_constraint_location_local = constraint.getSecondConstraintLocationLocal();
+  const Eigen::Vector2d second_constraint_location_global =
+      state_2.head<2>() + Eigen::Rotation2Dd(state_2(physics::STATE_THETA_IDX)) * second_constraint_location_local;
+
+  // Calculate the distance between constraints
+  const auto distance = (second_constraint_location_global - first_constraint_location_global).norm();
 
   // Width of the rectangle
   const float width = 0.1;
@@ -110,10 +137,11 @@ void DrawConstraint::operator()(constraints::DistanceConstraint& constraint)
   // Set the origin of the rectangle to the middle of the leftmost side
   line.setOrigin(0, width / 2);
 
+  // Get the position difference between the constraints
+  const Eigen::Vector2d diff_constraints = second_constraint_location_global - first_constraint_location_global;
+
   // Calculate what the angle of the rectangle should be
-  const auto angle = std::atan2(state_2(physics::STATE_Y_POS_IDX) - state_1(physics::STATE_Y_POS_IDX),
-                                state_2(physics::STATE_X_POS_IDX) - state_1(physics::STATE_X_POS_IDX)) *
-                     (rad2deg);
+  const auto angle = std::atan2(diff_constraints(1), diff_constraints(0)) * (rad2deg);
 
   // Rotate the rectangle that many degrees
   line.rotate(-angle);
@@ -121,8 +149,8 @@ void DrawConstraint::operator()(constraints::DistanceConstraint& constraint)
   // Calculate the scaled window height
   const auto scaled_window_height = config_.window_height / config_.pixels_to_meters_ratio;
 
-  line.setPosition(state_1(physics::STATE_X_POS_IDX) * config_.pixels_to_meters_ratio,
-                   (scaled_window_height - state_1(physics::STATE_Y_POS_IDX)) * config_.pixels_to_meters_ratio);
+  line.setPosition(first_constraint_location_global(0) * config_.pixels_to_meters_ratio,
+                   (scaled_window_height - first_constraint_location_global(1)) * config_.pixels_to_meters_ratio);
 
   window_.draw(line);
 }

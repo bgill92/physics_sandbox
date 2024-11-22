@@ -10,7 +10,10 @@ public:
   Particle() = delete;
 
   Particle(const double radius, const double mass, const physics::State& state, const sf::Color& color)
-    : radius_{ radius }, point_mass_{ mass, state }, graphics_{ radius, color } {};
+    : radius_{ radius }
+    , inertia_{ 0.5 * mass * radius * radius }
+    , point_mass_{ mass, state }
+    , graphics_{ radius, color } {};
 
   double getRadius()
   {
@@ -27,8 +30,14 @@ public:
     return graphics_;
   }
 
+  double getInertia() const
+  {
+    return inertia_;
+  }
+
 private:
   double radius_;
+  double inertia_;
   dynamics::PointMass point_mass_;
   graphics::CircleGraphics graphics_;
 };
