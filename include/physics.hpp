@@ -5,14 +5,16 @@
 #include <concepts>
 #include <mutex>
 #include <optional>
+#include <unordered_map>
 #include <variant>
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <SFML/Graphics.hpp>
 
-#include "constraints.hpp"
 #include "common.hpp"
+#include "constraints.hpp"
+#include "control.hpp"
 #include "dynamics.hpp"
 #include "integrator.hpp"
 #include "input.hpp"
@@ -155,9 +157,7 @@ private:
  * @tparam     T        A class which satisfies the hasDynamics concept
  */
 template <hasDynamics T>
-void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object,
-                const std::optional<std::reference_wrapper<input::InputProcessor>>& input_processor_maybe,
-                std::mutex& input_mtx);
+void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object);
 
 /**
  * @brief      The manager for performing the physics calculations
@@ -165,13 +165,15 @@ void stepObject(const size_t idx, const Config& config, constraints::Constraints
 struct PhysicsManager
 {
   PhysicsManager(const Config& config, std::vector<Object>& objects, std::vector<constraints::Constraint>& constraints,
-                 std::mutex& drawing_mtx, std::mutex& input_mtx)
+                 std::mutex& drawing_mtx, std::mutex& input_mtx, control::ControllerManager& controller_manager)
     : config_{ config }
     , objects_{ objects }
     , constraints_manager_{ objects_, constraints }
     , drawing_mtx_{ drawing_mtx }
     , input_mtx_{ input_mtx }
+    , controller_manager_{ controller_manager }
   {
+    const auto get_current_sensor_object_idx = [&](auto& sensor) -> size_t { return sensor.getObjectIdx(); };
   }
 
   /**
@@ -197,6 +199,7 @@ private:
   constraints::ConstraintsManager constraints_manager_;
   std::mutex& drawing_mtx_;
   std::mutex& input_mtx_;
+  control::ControllerManager& controller_manager_;
   std::optional<std::reference_wrapper<input::InputProcessor>> input_processor_;
   double time_{ 0 };
 };

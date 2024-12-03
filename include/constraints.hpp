@@ -131,33 +131,6 @@ private:
   physics::State end_point_;
 };
 
-// struct PinConstraint : public ConstraintsBase
-// {
-//   PinConstraint() = delete;
-
-//   PinConstraint(const size_t object_idx, const physics::State& center, const Eigen::Vector2d& constraint_location_local)
-//     : object_idx_{ object_idx }, center_{ center }, constraint_location_local_{ constraint_location_local }
-//   {
-//   }
-
-//   size_t getObjectIdx() const override
-//   {
-//     return object_idx_;
-//   }
-
-//   physics::State getCenter() const
-//   {
-//     return start_point_;
-//   }
-
-//   Eigen::Vector2d getConstraintLocationLocal() const {return constraint_location_local_;}
-
-// private:
-//   size_t object_idx_;
-//   physics::State center_;
-//   Eigen::Vector2d constraint_location_local_;
-// }
-
 using Constraint = std::variant<CircleConstraint, DistanceConstraint, LinearConstraint>;
 
 struct Constrain

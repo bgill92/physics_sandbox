@@ -1,16 +1,20 @@
 #include <iostream>
 #include <fstream>
+#include <functional>
 #include <string>
 #include <vector>
 
 #include <Eigen/Dense>
 
 #include "common.hpp"
+#include "control.hpp"
 #include "constraints.hpp"
 #include "physics.hpp"
 #include "particle.hpp"
 #include "simulator.hpp"
+#include "sensor.hpp"
 #include "utils.hpp"
+#include "utils_control.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -35,9 +39,9 @@ int main()
 
     constraints::DistanceConstraint constraint_2{ 0, v1, 1, v2, 0 };
 
-    Rectangle r1{ 0.5, 0.2, 1, { 5, 5, 0, 0, 0, 0 }, sf::Color::Red };
+    Rectangle r1{ 0.5, 0.2, 1, { 3, 5, 0, 0, 0, 0 }, sf::Color::Red };
 
-    Rectangle r2{ 3, 0.1, 1, { 5, 6.4, 80 * deg2rad, 0, 0, 0 }, sf::Color::Green };
+    Rectangle r2{ 3, 0.1, 1, { 3, 6.4, 80 * deg2rad, 0, 0, 0 }, sf::Color::Green };
 
     std::vector<Object> objects;
 
@@ -52,10 +56,28 @@ int main()
     constraints.push_back(constraint_2);
 
     return { objects, constraints };
-    // return { objects, {} };
   };
 
-  auto simulator = Simulator(config, object_and_constraint_generator_func, 0);
+  const auto sensor_generator_func = []() {
+    std::vector<sensor::Sensor> sensors;
+
+    sensor::OrientationSensor sensor_1{ 1, 0.0174533 };
+
+    sensors.push_back(sensor_1);
+
+    return sensors;
+  };
+
+  const std::string controller_config_file_path = "/home/bilal/physics_sandbox/config/config_pid.json";
+
+  std::ifstream controller_config_file{ controller_config_file_path };
+
+  const auto config_pid = utils::parse_PID(utils::json::parse(controller_config_file));
+
+  control::PID pid{ config_pid };
+
+  // auto simulator = Simulator(config, object_and_constraint_generator_func, 0, sensor_generator_func);
+  auto simulator = Simulator(config, object_and_constraint_generator_func, std::nullopt, sensor_generator_func, pid);
 
   simulator.run();
 

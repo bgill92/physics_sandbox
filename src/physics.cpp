@@ -223,22 +223,8 @@ void collisionCheck<Rectangle>::operator()(Rectangle& second_object)
 }
 
 template <hasDynamics T>
-void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object,
-                const std::optional<std::reference_wrapper<input::InputProcessor>>& input_processor_maybe,
-                std::mutex& input_mtx)
+void stepObject(const size_t idx, const Config& config, constraints::ConstraintsManager& constraints_manager, T& object)
 {
-  if (input_processor_maybe.has_value())
-  {
-    std::scoped_lock lock{ input_mtx };
-
-    auto& ip = input_processor_maybe.value().get();
-
-    if (idx == ip.getObjectIdx())
-    {
-      object.getDynamics().getForce() = ip.getObjectForce();
-    }
-  }
-
   // Should gravity be applied to the object this timestep?
   if (config.gravity_flag)
   {
@@ -257,9 +243,17 @@ void PhysicsManager::step(const size_t idx)
   // A reference to the current object
   auto& object = objects_.at(idx);
 
+  // Process the control
+  if (auto const force = controller_manager_.getObjectForce(idx); force.has_value())
+  {
+    const auto get_force_lambda = [](auto& object) -> physics::Force& { return object.getDynamics().getForce(); };
+
+    std::visit(get_force_lambda, object) = force.value();
+  }
+
   // A lambda which is used to step the object once the proper type has been dispatched via std::visit (I think thats how it works?)
-  const auto step_lambda = [&](auto&& object) {
-    stepObject<decltype(object)>(idx, config_, constraints_manager_, object, input_processor_, input_mtx_);
+  const auto step_lambda = [&](auto& object) {
+    stepObject<decltype(object)>(idx, config_, constraints_manager_, object);
   };
 
   std::visit(step_lambda, object);

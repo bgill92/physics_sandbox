@@ -1,0 +1,8 @@
+{
+	"object_idx": 0,
+	"timestep": 0.01,
+	"reference_value": 1.57079632679,
+	"Kp": 80,
+	"Ki": 2,
+	"Kd": 10
+}

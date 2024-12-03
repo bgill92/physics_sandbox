@@ -20,6 +20,7 @@ repos:
         files: \.(c|cc|cxx|cpp|frag|glsl|h|hpp|hxx|ih|ispc|ipp|java|m|proto|vert)$
         # -i arg is included by default by the hook
         args: ["-fallback-style=none"]
+        exclude: .*/third_party/.*
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.27.1

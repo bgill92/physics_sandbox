@@ -18,6 +18,17 @@ void Simulator::run()
   // Start simulating the physics
   std::thread physics_thread(run_sim);
 
+  // Start the control
+  std::thread control_thread;
+  if (controller_manager_.hasController())
+  {
+    control_thread = std::thread([&]() { this->controller_manager_.run(this->sim_running_); });
+  }
+  else
+  {
+    std::cout << "There is no controller\n";
+  }
+
   // run the main loop
   while (window_.isOpen())
   {
@@ -69,13 +80,9 @@ void Simulator::run()
     }
     else
     {
-      // std::cout << "Sleeping for: " << target_cycle_time - draw_duration.count() << " microseconds\n";
       // Sleep until the next time to draw
       std::this_thread::sleep_for(std::chrono::microseconds(target_cycle_time - draw_duration.count()));
     }
-
-    // // Output the duration
-    // std::cout << "Draw Duration: " << draw_duration.count() << " microseconds\n";
   }
 
   // The sim isn't running anymore
@@ -83,4 +90,10 @@ void Simulator::run()
 
   // Simulation is done
   physics_thread.join();
+
+  // Controller is done
+  if (controller_manager_.hasController())
+  {
+    control_thread.join();
+  }
 }

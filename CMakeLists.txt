@@ -2,60 +2,74 @@ cmake_minimum_required(VERSION 3.22)
 project(physics_sandbox)
 set(CMAKE_CXX_STANDARD 23)
 
-set(CMAKE_BUILD_TYPE Debug)
-
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+# Compiler warnings for GCC and Clang
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(CMAKE_CXX_FLAGS, "${CXX_FLAGS} -pthread")
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
-
-include(FetchContent)
-
+# Find required packages
+find_package(Threads REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(SFML COMPONENTS graphics REQUIRED)
-
-add_library(json INTERFACE)
-add_library(nlohmann::json ALIAS json)
-target_include_directories(json INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/nlohmann>)
-target_compile_features(json INTERFACE cxx_std_23)
-
-add_library(physics_engine src/common_graphics.cpp src/constraints.cpp src/dynamics.cpp src/graphics.cpp src/input.cpp src/particle.cpp src/physics.cpp src/rectangle.cpp src/simulator.cpp src/utils.cpp)
-target_include_directories(physics_engine PRIVATE include)
-target_link_libraries(physics_engine PRIVATE sfml-graphics sfml-window pthread Eigen3::Eigen nlohmann::json)
-
-# Add the executables
-add_executable(physics_sandbox src/physics_sandbox.cpp)
-target_include_directories(physics_sandbox PRIVATE include)
-target_link_libraries(physics_sandbox PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
-
-add_executable(constraints_example src/constraints_example.cpp)
-target_include_directories(constraints_example PRIVATE include)
-target_link_libraries(constraints_example PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
-
-add_executable(double_pendulum src/double_pendulum.cpp)
-target_include_directories(double_pendulum PRIVATE include)
-target_link_libraries(double_pendulum PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
-
-add_executable(n_pendulum src/n_pendulum.cpp)
-target_include_directories(n_pendulum PRIVATE include)
-target_link_libraries(n_pendulum PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
-
-add_executable(linear_constraint_example src/linear_constraint_example.cpp)
-target_include_directories(linear_constraint_example PRIVATE include)
-target_link_libraries(linear_constraint_example PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
-
-add_executable(rectangle_example src/rectangle_example.cpp)
-target_include_directories(rectangle_example PRIVATE include)
-target_link_libraries(rectangle_example PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
-
-add_executable(inverted_pendulum src/inverted_pendulum.cpp)
-target_include_directories(inverted_pendulum PRIVATE include)
-target_link_libraries(inverted_pendulum PRIVATE physics_engine sfml-graphics pthread Eigen3::Eigen nlohmann::json)
-
+find_package(SFML COMPONENTS graphics window REQUIRED)
 find_package(GTest REQUIRED)
-include_directories(include ${GTEST_INCLUDE_DIRS})
 
+# Add interface library for nlohmann::json
+add_library(nlohmann_json INTERFACE)
+target_include_directories(nlohmann_json INTERFACE ${PROJECT_SOURCE_DIR}/third_party/nlohmann)
+target_compile_features(nlohmann_json INTERFACE cxx_std_23)
+
+# Add interface library for tl::expected
+add_library(tl_expected INTERFACE)
+target_include_directories(tl_expected INTERFACE ${PROJECT_SOURCE_DIR}/third_party/tl)
+target_compile_features(tl_expected INTERFACE cxx_std_20)
+
+# Add the physics_engine library
+add_library(physics_engine
+    src/common_graphics.cpp
+    src/constraints.cpp
+    src/control.cpp
+    src/dynamics.cpp
+    src/graphics.cpp
+    src/input.cpp
+    src/particle.cpp
+    src/physics.cpp
+    src/rectangle.cpp
+    src/simulator.cpp
+    src/sensor.cpp
+    src/utils.cpp
+    src/utils_control.cpp
+)
+target_include_directories(physics_engine PUBLIC include)
+target_link_libraries(physics_engine PUBLIC
+    sfml-graphics
+    sfml-window
+    Threads::Threads
+    Eigen3::Eigen
+    nlohmann_json
+    tl_expected
+)
+target_compile_features(physics_engine PUBLIC cxx_std_23)
+
+# List of executables
+set(EXECUTABLES
+    physics_sandbox
+    constraints_example
+    double_pendulum
+    n_pendulum
+    linear_constraint_example
+    rectangle_example
+    inverted_pendulum
+)
+
+# Add executables and link to physics_engine
+foreach(exec ${EXECUTABLES})
+    add_executable(${exec} src/${exec}.cpp)
+    target_link_libraries(${exec} PRIVATE physics_engine)
+endforeach()
+
+# Enable testing
+enable_testing()
+
+# Add test executable
 add_executable(test_dynamics test/test_dynamics.cpp)
-target_link_libraries(test_dynamics PRIVATE ${GTEST_LIBRARIES} physics_engine pthread Eigen3::Eigen)
+target_link_libraries(test_dynamics PRIVATE physics_engine GTest::GTest GTest::Main)
